@@ -1,12 +1,10 @@
 #version 330 core
 layout (location = 0) in vec3 vPos; 
-layout (location = 1) in vec3 vColor;
-
+out vec3 outColor;
 uniform mat4 modeltransform;
 uniform mat4 viewtransform;
 uniform mat4 projectiontransform;
-
-out vec3 outColor;
+uniform vec3 vColor;
 
 void main()
 {
