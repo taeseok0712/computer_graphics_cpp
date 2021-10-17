@@ -128,8 +128,6 @@ struct MiniTrans {
     float Mini3Z = 0.0f;
 }MiniTransSize;
 
-
-
 vector<float>SubSphere1;
 vector<float>SubSphere2;
 vector<float>SubSphere3;
@@ -147,7 +145,6 @@ float make_line[] = {
     0.0f, 0.0f, 1.0f, 0.5f, 0.0f, 0.5f,
     0.0f, 0.0f, -1.0f, 0.5f, 0.0f, 0.5f
 };
-
 
 GLUquadricObj* CenterQobj;
 GLUquadricObj* SubQobj1;
@@ -264,12 +261,12 @@ GLuint make_shaderProgram() {
     shaderID[0] = glCreateProgram();
 
     glAttachShader(shaderID[0], vertexshader);
-    glAttachShader(shaderID[0], fragmentshader);
+    glAttachShader(shaderID[0], fragmentshader); // vao 연결한거
 
     shaderID[1] = glCreateProgram();
 
     glAttachShader(shaderID[1], qobjshader);
-    glAttachShader(shaderID[1], fragmentshader);
+    glAttachShader(shaderID[1], fragmentshader); //vao 말고 다른것들? 
 
     glLinkProgram(shaderID[0]);
     glLinkProgram(shaderID[1]);
@@ -310,11 +307,8 @@ GLvoid drawscene() {
 
     glUseProgram(shaderID[0]);
     
-    
     unsigned int ViewModelLocation = glGetUniformLocation(shaderID[0], "viewtransform");
     unsigned int ProjLocation = glGetUniformLocation(shaderID[0], "projectiontransform");
-
-
 
     glm::vec3 CameraPos = glm::vec3(CameraPoint.ViewX, CameraPoint.ViewY, CameraPoint.ViewZ); //--- 카메라 위치
     glm::vec3 CameraDirection = glm::vec3(0.0f, 0.0f, 0.0f); //--- 카메라 바라보는 방향
@@ -334,11 +328,10 @@ GLvoid drawscene() {
     SubOrbital1Model = glm::translate(SubOrbital1Model, glm::vec3(ObjectTransSize.AllTransX, ObjectTransSize.AllTransY, ObjectTransSize.AllTransZ));
     unsigned int SubOrbital1ModelLocation = glGetUniformLocation(shaderID[0], "modeltransform");
     glUniformMatrix4fv(SubOrbital1ModelLocation, 1, GL_FALSE, glm::value_ptr(SubOrbital1Model));
-    
+   
     glBindVertexArray(VAO[0]);
     glLineWidth(2.0f);
     glDrawArrays(GL_LINE_STRIP, 0, SubSphere1.size() / 6);
-
 
     glm::mat4 SubOrbital2Model = glm::mat4(1.0f);
     SubOrbital2Model = glm::rotate(SubOrbital2Model, glm::radians(CenterAnglex), glm::vec3(1.0f, 0.0f, 0.0f));
