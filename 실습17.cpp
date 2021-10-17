@@ -28,15 +28,17 @@ GLvoid reshape(int w, int h);
 GLvoid drawscene(GLvoid);
 GLvoid keyboard(unsigned char key, int x, int y);
 
-bool TimerCheck = false;
 bool ChangeShape = true;
-bool Culling = false;
+
+bool TriOpenSlide = false;
+bool TriCloseSlide = false;
 bool ModelRotate = false;
 bool ModelUpRotate = false;
 bool OpenSlide = false;
 bool CloseSlide = false;
 bool OpenFront = false;
-bool CloseFront = true;
+bool CloseFront = false;
+bool ScreenChange = true;
 
 int windowWidth, windowHeight;
 int RotateCountx = 0;
@@ -46,29 +48,39 @@ int RotateCountY = 0;
 
 float AxisAnglex = 0.0f;
 float AxisAngley = 0.0f;
-float HexaAnglex = 0.0f;
-float HexaAngley = 0.0f;
 
 struct ModelAngle {
 	float upAngle = 0.0f;
 	float frontAngel = 0.0f;
+	float totalAngle1 = 0.0f;
+	float totalAngle2 = 0.0f;
 }ModelAngleSize;
 
 struct CameraViewPoint {
 	float ViewX = -0.5f;
 	float ViewY = 1.0f;
-	float ViewZ = 3.0f;
+	float ViewZ = 5.0f;
 }CameraPoint;
 
 struct ModelTrans {
 	float transX = 0.0f;
 	float transY = 0.0f;
 	float transZ = 0.0f;
+
+	float trileft = 0.0f;
+	float triright = 0.0f;
+	float triback = 0.0f;
+
+	float trifrontX = 0.0f;
+	float trifrontY = 0.0f;
+	float trifrontZ = 0.0f;
+
+
 }ModelTransSize;
 
-vector<glm::vec4>ModelVertexValue[6];
+vector<glm::vec4>ModelVertexValue[11];
 
-GLuint VAO[8], VBO[16];
+GLuint VAO[12], VBO[13];
 GLuint shaderID[2];
 GLuint qobjshader;
 GLuint vertexshader;
@@ -107,6 +119,13 @@ int main(int argc, char** argv) {
 	ReadObj("square1.obj", ModelVertexValue[3]);
 	ReadObj("square2.obj", ModelVertexValue[4]);
 	ReadObj("square3.obj", ModelVertexValue[5]);
+
+	ReadObj("square1.obj", ModelVertexValue[6]);
+	ReadObj("triangle1.obj", ModelVertexValue[7]);
+	ReadObj("triangle2.obj", ModelVertexValue[8]);
+	ReadObj("triangle3.obj", ModelVertexValue[9]);
+	ReadObj("triangle4.obj", ModelVertexValue[10]);
+
 	make_vertexShaders();
 	make_fragmentShaders();
 	initbuffer();
@@ -126,7 +145,6 @@ void make_vertexShaders() {
 	glShaderSource(vertexshader, 1, &vertexsource1, NULL);
 	glCompileShader(vertexshader);
 
-
 	GLchar* vertexsource2;
 
 	vertexsource2 = filetobuf("qobjvertexshader.glsl");
@@ -134,8 +152,6 @@ void make_vertexShaders() {
 	qobjshader = glCreateShader(GL_VERTEX_SHADER);
 	glShaderSource(qobjshader, 1, &vertexsource2, NULL);
 	glCompileShader(qobjshader);
-
-
 
 	GLint result;
 	GLchar errorlog[512];
@@ -184,7 +200,6 @@ char* filetobuf(const string name)
 	return addr;
 }
 GLuint make_shaderProgram() {
-
 	shaderID[0] = glCreateProgram();
 
 	glAttachShader(shaderID[0], vertexshader);
@@ -221,9 +236,7 @@ GLvoid drawscene() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
-
-
+	
 	initbuffer();
 
 	glUseProgram(shaderID[0]);
@@ -231,12 +244,19 @@ GLvoid drawscene() {
     glm::vec3 CameraPos = glm::vec3(CameraPoint.ViewX, CameraPoint.ViewY, CameraPoint.ViewZ); //--- 카메라 위치
     glm::vec3 CameraDirection = glm::vec3(0.0f, 0.0f, 0.0f); //--- 카메라 바라보는 방향
     glm::vec3 CameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
-    
-    glm::mat4 ScreenProj = glm::mat4(1.0f);
-    ScreenProj = glm::perspective(glm::radians(60.0f), (float)windowWidth / windowHeight, 0.1f, 100.0f);
-    unsigned int ProjLocation = glGetUniformLocation(shaderID[0], "projectiontransform");
-    glUniformMatrix4fv(ProjLocation, 1, GL_FALSE, &ScreenProj[0][0]); //투영
 	
+	if (ScreenChange) {
+		glm::mat4 ScreenProj = glm::mat4(1.0f);
+		ScreenProj = glm::perspective(glm::radians(45.0f), (float)windowWidth / windowHeight, 0.1f, 100.0f);
+		unsigned int ProjLocation = glGetUniformLocation(shaderID[0], "projectiontransform");
+		glUniformMatrix4fv(ProjLocation, 1, GL_FALSE, &ScreenProj[0][0]); //투영
+	}
+	else {
+		glm::mat4 ScreenOrtho = glm::mat4(1.0f);
+		ScreenOrtho = glm::ortho(-2.0f, 2.0f, -2.0f, 2.0f, 0.7f, 20.0f);
+		unsigned int OrthoLocation = glGetUniformLocation(shaderID[0], "projectiontransform");
+		glUniformMatrix4fv(OrthoLocation, 1, GL_FALSE, glm::value_ptr(ScreenOrtho)); //투영
+	}
 
     glm::mat4 ScreenView = glm::mat4(1.0f);
     ScreenView = glm::lookAt(CameraPos, CameraDirection, CameraUp);
@@ -253,7 +273,6 @@ GLvoid drawscene() {
 	glLineWidth(2.0f);
 	glDrawArrays(GL_LINES, 0, 6);
 
-
 	if (ChangeShape) {
 		glUseProgram(shaderID[1]);
 
@@ -261,17 +280,22 @@ GLvoid drawscene() {
 		glm::vec3 ModelCameraDirection = glm::vec3(0.0f, 0.0f, 0.0f); //--- 카메라 바라보는 방향
 		glm::vec3 ModelCameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
-		glm::mat4 ModelScreenProj = glm::mat4(1.0f);
-		ModelScreenProj = glm::perspective(glm::radians(60.0f), (float)windowWidth / windowHeight, 0.1f, 100.0f);
-		unsigned int ModelProjLocation = glGetUniformLocation(shaderID[1], "projectiontransform");
-		glUniformMatrix4fv(ModelProjLocation, 1, GL_FALSE, &ModelScreenProj[0][0]); //투영
-
-
+		if (ScreenChange) {
+			glm::mat4 ModelScreenProj = glm::mat4(1.0f);
+			ModelScreenProj = glm::perspective(glm::radians(45.0f), (float)windowWidth / windowHeight, 0.1f, 100.0f);
+			unsigned int ModelProjLocation = glGetUniformLocation(shaderID[1], "projectiontransform");
+			glUniformMatrix4fv(ModelProjLocation, 1, GL_FALSE, &ModelScreenProj[0][0]); //투영
+		}
+		else {
+			glm::mat4 ScreenOrtho = glm::mat4(1.0f);
+			ScreenOrtho = glm::ortho(-2.0f, 2.0f, -2.0f, 2.0f, 0.7f, 20.0f);
+			unsigned int OrthoLocation = glGetUniformLocation(shaderID[1], "projectiontransform");
+			glUniformMatrix4fv(OrthoLocation, 1, GL_FALSE, glm::value_ptr(ScreenOrtho)); //투영
+		}
 		glm::mat4 ModelScreenView = glm::mat4(1.0f);
 		ModelScreenView = glm::lookAt(ModelCameraPos, ModelCameraDirection, ModelCameraUp);
 		unsigned int ModelViewLocation = glGetUniformLocation(shaderID[1], "viewtransform");
 		glUniformMatrix4fv(ModelViewLocation, 1, GL_FALSE, glm::value_ptr(ModelScreenView)); //뷰
-
 
 		glBindVertexArray(VAO[1]);
 		glm::mat4 HexaUpModel = glm::mat4(1.0f);
@@ -352,79 +376,96 @@ GLvoid drawscene() {
 		unsigned int ModelRightFragLocation = glGetUniformLocation(shaderID[1], "vColor");
 		glUniform3f(ModelRightFragLocation, 0.54f, 0.0f, 1.0f);
 		glDrawArrays(GL_QUADS, 0, 24);
-
-
-
-
 	}
 	else {
-		//glm::mat4 QuadModel = glm::mat4(1.0f);
-		//QuadModel = glm::rotate(QuadModel, glm::radians(AxisAnglex), glm::vec3(1.0f, 0.0f, 0.0f));
-		//QuadModel = glm::rotate(QuadModel, glm::radians(AxisAngley), glm::vec3(0.0f, 1.0f, 0.0f));
-		////QuadModel = glm::translate(QuadModel, glm::vec3(HexaTransx, HexaTransy, HexaTransz));
-		//QuadModel = glm::rotate(QuadModel, glm::radians(HexaAnglex), glm::vec3(1.0f, 0.0f, 0.0f));
-		//QuadModel = glm::rotate(QuadModel, glm::radians(HexaAngley), glm::vec3(0.0f, 1.0f, 0.0f));
-		//unsigned int modelLocation = glGetUniformLocation(shaderID[0], "modeltransform");
-		//glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(QuadModel));
-		//glBindVertexArray(VAO[2]);		
-		//glDrawArrays(GL_TRIANGLES, 0, 18);
-	}
+	glUseProgram(shaderID[1]);
 
+	glm::vec3 ModelCameraPos = glm::vec3(CameraPoint.ViewX, CameraPoint.ViewY, CameraPoint.ViewZ); //--- 카메라 위치
+	glm::vec3 ModelCameraDirection = glm::vec3(0.0f, 0.0f, 0.0f); //--- 카메라 바라보는 방향
+	glm::vec3 ModelCameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+	if (ScreenChange) {
+		glm::mat4 ModelScreenProj = glm::mat4(1.0f);
+		ModelScreenProj = glm::perspective(glm::radians(45.0f), (float)windowWidth / windowHeight, 0.1f, 100.0f);
+		unsigned int ModelProjLocation = glGetUniformLocation(shaderID[1], "projectiontransform");
+		glUniformMatrix4fv(ModelProjLocation, 1, GL_FALSE, &ModelScreenProj[0][0]); //투영
+	}
+	else {
+		glm::mat4 ScreenOrtho = glm::mat4(1.0f);
+		ScreenOrtho = glm::ortho(-2.0f, 2.0f, -2.0f, 2.0f, 0.7f, 20.0f);
+		unsigned int OrthoLocation = glGetUniformLocation(shaderID[1], "projectiontransform");
+		glUniformMatrix4fv(OrthoLocation, 1, GL_FALSE, glm::value_ptr(ScreenOrtho)); //투영
+	}
+	glm::mat4 ModelScreenView = glm::mat4(1.0f);
+	ModelScreenView = glm::lookAt(ModelCameraPos, ModelCameraDirection, ModelCameraUp);
+	unsigned int ModelViewLocation = glGetUniformLocation(shaderID[1], "viewtransform");
+	glUniformMatrix4fv(ModelViewLocation, 1, GL_FALSE, glm::value_ptr(ModelScreenView)); //뷰
+
+	glBindVertexArray(VAO[7]);
+	glm::mat4 SquareModel = glm::mat4(1.0f);
+	SquareModel = glm::rotate(SquareModel, glm::radians(AxisAnglex), glm::vec3(1.0f, 0.0f, 0.0f));
+	SquareModel = glm::rotate(SquareModel, glm::radians(AxisAngley), glm::vec3(0.0f, 1.0f, 0.0f));
+	unsigned int SquareModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
+	glUniformMatrix4fv(SquareModelLocation, 1, GL_FALSE, glm::value_ptr(SquareModel));
+	unsigned int SquareModelFragLocation = glGetUniformLocation(shaderID[1], "vColor");
+	glUniform3f(SquareModelFragLocation, 1.0f, 0.0f, 0.0f);
+	glDrawArrays(GL_QUADS, 0, 24);
+
+	glBindVertexArray(VAO[8]);
+	glm::mat4 TriLeftModel = glm::mat4(1.0f);
+	TriLeftModel = glm::rotate(TriLeftModel, glm::radians(AxisAnglex), glm::vec3(1.0f, 0.0f, 0.0f));
+	TriLeftModel = glm::rotate(TriLeftModel, glm::radians(AxisAngley), glm::vec3(0.0f, 1.0f, 0.0f));
+	TriLeftModel = glm::translate(TriLeftModel, glm::vec3(0.5f,0.0f,0.0f));
+	TriLeftModel = glm::rotate(TriLeftModel, glm::radians(ModelAngleSize.totalAngle2), glm::vec3(0.0f, 0.0f, 1.0f));
+	TriLeftModel = glm::translate(TriLeftModel, glm::vec3(-0.5f, 0.0f, 0.0f));
+	unsigned int TriLeftModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
+	glUniformMatrix4fv(TriLeftModelLocation, 1, GL_FALSE, glm::value_ptr(TriLeftModel));
+	unsigned int TriLeftModelFragLocation = glGetUniformLocation(shaderID[1], "vColor");
+	glUniform3f(TriLeftModelFragLocation, 0.86f, 0.625f, 0.86f);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+
+	glBindVertexArray(VAO[9]);
+	glm::mat4 TriBackModel = glm::mat4(1.0f);
+	TriBackModel = glm::rotate(TriBackModel, glm::radians(AxisAnglex), glm::vec3(1.0f, 0.0f, 0.0f));
+	TriBackModel = glm::rotate(TriBackModel, glm::radians(AxisAngley), glm::vec3(0.0f, 1.0f, 0.0f));
+	TriBackModel = glm::translate(TriBackModel, glm::vec3(0.0f,0.0f,-0.5f));
+	TriBackModel = glm::rotate(TriBackModel, glm::radians(ModelAngleSize.totalAngle2), glm::vec3(1.0f, 0.0f, 0.0f));
+	TriBackModel = glm::translate(TriBackModel, glm::vec3(0.0f, 0.0f, 0.5f));
+	unsigned int TriBackModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
+	glUniformMatrix4fv(TriBackModelLocation, 1, GL_FALSE, glm::value_ptr(TriBackModel));
+	unsigned int TriBackModelFragLocation = glGetUniformLocation(shaderID[1], "vColor");
+	glUniform3f(TriBackModelFragLocation, 1.0f, 0.4f, 0.0f);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+
+	glBindVertexArray(VAO[10]);
+	glm::mat4 TriRightModel = glm::mat4(1.0f);
+	TriRightModel = glm::rotate(TriRightModel, glm::radians(AxisAnglex), glm::vec3(1.0f, 0.0f, 0.0f));
+	TriRightModel = glm::rotate(TriRightModel, glm::radians(AxisAngley), glm::vec3(0.0f, 1.0f, 0.0f));
+	TriRightModel = glm::translate(TriRightModel, glm::vec3(-0.5f,0.0f,0.0f));
+	TriRightModel = glm::rotate(TriRightModel, glm::radians(ModelAngleSize.totalAngle1), glm::vec3(0.0f, 0.0f, 1.0f));
+	TriRightModel = glm::translate(TriRightModel, glm::vec3(0.5f, 0.0f, 0.0f));
+	unsigned int TriRightModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
+	glUniformMatrix4fv(TriRightModelLocation, 1, GL_FALSE, glm::value_ptr(TriRightModel));
+	unsigned int TriRightModelFragLocation = glGetUniformLocation(shaderID[1], "vColor");
+	glUniform3f(TriRightModelFragLocation, 1.0f, 1.0f, 0.0f);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+
+	glBindVertexArray(VAO[11]);
+	glm::mat4 TriFrontModel = glm::mat4(1.0f);
+	TriFrontModel = glm::rotate(TriFrontModel, glm::radians(AxisAnglex), glm::vec3(1.0f, 0.0f, 0.0f));
+	TriFrontModel = glm::rotate(TriFrontModel, glm::radians(AxisAngley), glm::vec3(0.0f, 1.0f, 0.0f));
+	TriFrontModel = glm::translate(TriFrontModel, glm::vec3(0.0f,0.0f,0.5f));
+	TriFrontModel = glm::rotate(TriFrontModel, glm::radians(ModelAngleSize.totalAngle1), glm::vec3(1.0f, 0.0f, 0.0f));
+	TriFrontModel = glm::translate(TriFrontModel, glm::vec3(0.0f, 0.0f, -0.5f));
+
+	unsigned int TriFrontModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
+	glUniformMatrix4fv(TriFrontModelLocation, 1, GL_FALSE, glm::value_ptr(TriFrontModel));
+	unsigned int TriFrontModelFragLocation = glGetUniformLocation(shaderID[1], "vColor");
+	glUniform3f(TriFrontModelFragLocation, 0.54f, 0.0f, 1.0f);
+	glDrawArrays(GL_TRIANGLES, 0, 3);
+	}
 	glutSwapBuffers();
 }
-
-//void ReadObj(const std::string objfilename, std::vector<glm::vec4>& vertex, std::vector<glm::vec4>& face)
-//{
-//	std::string line;
-//	int vertexNum = 0;
-//	std::ifstream inFile(objfilename);
-//
-//	while (std::getline(inFile, line)) {
-//		if (line[0] == 'v' && line[1] == ' ')
-//			vertexNum++;
-//		std::cout << line << std::endl;
-//	}
-//	glm::vec4* vertexData = new glm::vec4[vertexNum];
-//
-//	inFile.clear();
-//	inFile.seekg(0, std::ios::beg);
-//	vertexNum = 0;
-//	char head[2];
-//	int faceNum[4];
-//	std::string nt;
-//	while (inFile >> std::noskipws >> head[0]) {
-//		if (head[0] == 'v') {
-//			inFile >> std::noskipws >> head[1];
-//			if (head[1] == ' ') {
-//				inFile >> std::skipws >> vertexData[vertexNum].x >> vertexData[vertexNum].y >> vertexData[vertexNum].z;
-//				vertexNum++;
-//			}
-//			head[1] = '\0';
-//		}
-//		if (head[0] == 'f') {
-//			inFile >> std::noskipws >> head[1];
-//			if (head[1] == ' ') {
-//				inFile >> std::skipws >> faceNum[0];
-//				inFile >> std::skipws >> nt;
-//				inFile >> std::skipws >> faceNum[1];
-//				inFile >> std::skipws >> nt;
-//				inFile >> std::skipws >> faceNum[2];
-//				inFile >> std::skipws >> nt;
-//				inFile >> std::skipws >> faceNum[3];
-//				glm::vec4 temp = { faceNum[0], faceNum[1], faceNum[2], faceNum[3] };
-//				face.push_back(temp);
-//			}
-//			head[1] = '\0';
-//		}
-//	}
-//	for (auto iter = face.begin(); iter < face.end(); iter++) {
-//		vertex.push_back(vertexData[(int)(iter->x) - 1]);
-//		vertex.push_back(vertexData[(int)(iter->y) - 1]);
-//		vertex.push_back(vertexData[(int)(iter->z) - 1]);
-//		vertex.push_back(vertexData[(int)(iter->w) - 1]);
-//	}
-//
-//}
 
 GLvoid reshape(int w, int h) {
 	glViewport(0, 0, 800, 600);
@@ -437,8 +478,7 @@ void resize(int width, int height) {
 }
 
 void initbuffer() {
-
-	glGenVertexArrays(7, VAO);
+	glGenVertexArrays(12, VAO);
 
 	glBindVertexArray(VAO[0]);
 	glGenBuffers(2, &VBO[0]);
@@ -459,132 +499,97 @@ void initbuffer() {
 			glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * ModelVertexValue[i-1].size(), &ModelVertexValue[i-1][0], GL_STREAM_DRAW);
 			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0);
 			glEnableVertexAttribArray(0);
-			/*glBindBuffer(GL_ARRAY_BUFFER, VBO[2 * i + 1]);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(float) * ModelVertexValue[i].size(), &ModelVertexValue[i][4], GL_STREAM_DRAW);
-			glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(0 * sizeof(float)));
-			glEnableVertexAttribArray(1);*/
 		}
-		/*glBindVertexArray(VAO[2]);
-		glGenBuffers(2, &VBO[4]);
-		glBindBuffer(GL_ARRAY_BUFFER, VBO[4]);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(make_hexahedronDown), make_hexahedronDown, GL_STREAM_DRAW);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-		glEnableVertexAttribArray(0);
-		glBindBuffer(GL_ARRAY_BUFFER, VBO[5]);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(make_hexahedronDown), make_hexahedronDown, GL_STREAM_DRAW);
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-		glEnableVertexAttribArray(1);
-
-		glBindVertexArray(VAO[3]);
-		glGenBuffers(2, &VBO[6]);
-		glBindBuffer(GL_ARRAY_BUFFER, VBO[6]);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(make_hexahedronFront), make_hexahedronFront, GL_STREAM_DRAW);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-		glEnableVertexAttribArray(0);
-		glBindBuffer(GL_ARRAY_BUFFER, VBO[7]);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(make_hexahedronFront), make_hexahedronFront, GL_STREAM_DRAW);
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-		glEnableVertexAttribArray(1);
-
-		glBindVertexArray(VAO[4]);
-		glGenBuffers(2, &VBO[8]);
-		glBindBuffer(GL_ARRAY_BUFFER, VBO[8]);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(make_hexahedronBack), make_hexahedronBack, GL_STREAM_DRAW);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-		glEnableVertexAttribArray(0);
-		glBindBuffer(GL_ARRAY_BUFFER, VBO[9]);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(make_hexahedronBack), make_hexahedronBack, GL_STREAM_DRAW);
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-		glEnableVertexAttribArray(1);
-
-		glBindVertexArray(VAO[5]);
-		glGenBuffers(2, &VBO[10]);
-		glBindBuffer(GL_ARRAY_BUFFER, VBO[10]);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(make_hexahedronLeft), make_hexahedronLeft, GL_STREAM_DRAW);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-		glEnableVertexAttribArray(0);
-		glBindBuffer(GL_ARRAY_BUFFER, VBO[11]);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(make_hexahedronLeft), make_hexahedronLeft, GL_STREAM_DRAW);
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-		glEnableVertexAttribArray(1);
-
-		glBindVertexArray(VAO[6]);
-		glGenBuffers(2, &VBO[12]);
-		glBindBuffer(GL_ARRAY_BUFFER, VBO[12]);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(make_hexahedronRight), make_hexahedronRight, GL_STREAM_DRAW);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-		glEnableVertexAttribArray(0);
-		glBindBuffer(GL_ARRAY_BUFFER, VBO[13]);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(make_hexahedronRight), make_hexahedronRight, GL_STREAM_DRAW);
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-		glEnableVertexAttribArray(1);
-*/
-
-
-
 	}
-	/*else {
-		glBindVertexArray(VAO[7]);
-		glGenBuffers(2, &VBO[4]);
-		glBindBuffer(GL_ARRAY_BUFFER, VBO[14]);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(make_quadrant), make_quadrant, GL_STREAM_DRAW);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-		glEnableVertexAttribArray(0);
-		glBindBuffer(GL_ARRAY_BUFFER, VBO[15]);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(make_quadrant), make_quadrant, GL_STREAM_DRAW);
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-		glEnableVertexAttribArray(1);
-	}*/
-
+	else {
+		for (int i = 7; i < 12; i++) {
+			glBindVertexArray(VAO[i]);
+			glGenBuffers(1, &VBO[i + 1]);
+			glBindBuffer(GL_ARRAY_BUFFER, VBO[i + 1]);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * ModelVertexValue[i - 1].size(), &ModelVertexValue[i - 1][0], GL_STREAM_DRAW);
+			glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0);
+			glEnableVertexAttribArray(0);
+		}
+	}
 }
 
 GLvoid keyboard(unsigned char key, int x, int y) {
-	switch (key)
-	{
-
+	switch (key){
 	case 'c':
-		TimerCheck = false;
-		ChangeShape = true;
-		HexaAnglex = 30.0f;
-		HexaAngley = 30.0f;
-		
+		AxisAngley = 0.0f;
+		AxisAnglex = 0.0f;
+		memset(&ModelAngleSize, 0, sizeof(ModelAngleSize));
+		memset(&ModelTransSize, 0, sizeof(ModelTransSize));
+		CameraPoint.ViewX = -0.5f;
+		CameraPoint.ViewY = 1.0f;
+		CameraPoint.ViewZ = 3.0f;
+		ChangeShape = true;	
+		TriOpenSlide = false;
+		TriCloseSlide = false;
+		ModelRotate = false;
+		ModelUpRotate = false;
+		OpenSlide = false;
+		CloseSlide = false;
+		OpenFront = false;
+		CloseFront = false;
 		break;
-	case 'p':
-		TimerCheck = false;
+	case 'l':
+		AxisAngley = 0.0f;
+		AxisAnglex = 0.0f;
+		memset(&ModelAngleSize, 0, sizeof(ModelAngleSize));
+		memset(&ModelTransSize, 0, sizeof(ModelTransSize));
+		CameraPoint.ViewX = -0.5f;
+		CameraPoint.ViewY = 1.0f;
+		CameraPoint.ViewZ = 3.0f;
+		TriOpenSlide = false;
+		TriCloseSlide = false;
+		ModelRotate = false;
+		ModelUpRotate = false;
+		OpenSlide = false;
+		CloseSlide = false;
+		OpenFront = false;
+		CloseFront = false;
 		ChangeShape = false;
-		HexaAnglex = 30.0f;
-		HexaAngley = 30.0f;
+		break;
+	case 'o':
+		TriOpenSlide = true;
+		TriCloseSlide = false;
+		ChangeShape = false;
+		break;
+	case 'O':
+		TriOpenSlide = false;
+		TriCloseSlide = true;
+		ChangeShape = false;
 		break;
 	case 't':
+		ChangeShape = true;
 		ModelUpRotate = !ModelUpRotate;
 		break;
 	case 'f':
+		ChangeShape = true;
 		OpenFront = true;
 		CloseFront = false;
 		break;
 	case 'F':
+		ChangeShape = true;
 		CloseFront = true;
 		OpenFront = false;
 		break;
 	case 'y':
 		ModelRotate = !ModelRotate;
 		break;
+	case 'p':
+		ScreenChange = !ScreenChange;
+		break;
 	case '1':
+		ChangeShape = true;
 		OpenSlide = true;
 		CloseSlide = false;
 		break;
 	case '2':
+		ChangeShape = true;
 		OpenSlide = false;
 		CloseSlide = true;
-		break;
-	case 's':
-		RotateCountx = 0;
-		RotateCountX = 0;
-		RotateCounty = 0;
-		RotateCountY = 0;
-		AxisAngley = -30.0f;
-		AxisAnglex = 30.0f;
-		TimerCheck = false;
 		break;
 	case 'q':
 		exit(0);
@@ -635,8 +640,26 @@ void timer(int value) {
 			ModelTransSize.transZ -= 0.011f;
 		}
 	}
-
-
+	if (TriOpenSlide) {
+		if (ModelAngleSize.totalAngle1 >= 233.13010236+0.02) {
+			TriOpenSlide = false;
+			ModelAngleSize.totalAngle1 = 233.13010236 + 0.02;
+		}
+		else {	
+			ModelAngleSize.totalAngle1++;
+			ModelAngleSize.totalAngle2--;
+		}
+	}
+	if (TriCloseSlide) {
+		if (ModelAngleSize.totalAngle1 <= 0.0) {
+			TriCloseSlide = false;
+			ModelAngleSize.totalAngle1 = 0;
+		}
+		else {
+			ModelAngleSize.totalAngle1--;
+			ModelAngleSize.totalAngle2++;
+		}
+	}
 	if (ModelUpRotate) {
 		ModelAngleSize.upAngle++;
 	}
