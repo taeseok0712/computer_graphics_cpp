@@ -32,14 +32,30 @@ GLvoid keyboard(unsigned char key, int x, int y);
 
 bool CrainAllTransAlpha = false;
 bool CrainAllTransBeta = false;
+bool CrainBodyRotateA = false;
+bool CrainBodyRotateB = false;
+bool CrainArmRotateAB = false;
 
 int windowWidth, windowHeight;
 
 struct CameraViewPoint {
     float ViewX = 0.0f;
     float ViewY = 1.0f;
-    float ViewZ = 2.3f;
+    float ViewZ = 3.5f;
 }CameraPoint;
+struct CrainRotate {
+    float bodyRotateX = 0.0f;
+    float bodyRotateY = 0.0f;
+    float bodyRotateZ = 0.0f;
+
+    float armLRotateX = 0.0f;
+    float armLRotateY = 0.0f;
+    float armLRotateZ = 0.0f;
+
+    float armRRotateX = 0.0f;
+    float armRRotateY = 0.0f;
+    float armRRotateZ = 0.0f;
+}CrainRotateSize;
 
 struct CrainTrans {
     float AllTransX = 0.0f;
@@ -218,9 +234,6 @@ GLvoid drawscene() {
     //¹Ù´Ú¸é
     glBindVertexArray(VAO[0]);
     glm::mat4 PlaneModel = glm::mat4(1.0f);
-    //PlaneModel = glm::rotate(PlaneModel, glm::radians(AxisAnglex), glm::vec3(1.0f, 0.0f, 0.0f));
-    //PlaneModel = glm::rotate(PlaneModel, glm::radians(AxisAngley), glm::vec3(0.0f, 1.0f, 0.0f));
-    //PlaneModel = glm::translate(PlaneModel, glm::vec3(CrainTransSize.AllTransX, CrainTransSize.AllTransY, CrainTransSize.AllTransZ));
     PlaneModel = glm::scale(PlaneModel, glm::vec3(2.5f, 2.5f, 2.5f));
     unsigned int PlaneModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
     glUniformMatrix4fv(PlaneModelLocation, 1, GL_FALSE, glm::value_ptr(PlaneModel));
@@ -231,8 +244,6 @@ GLvoid drawscene() {
     //ÅÊÅ© ´Ù¸®ºÎºÐ
     glBindVertexArray(VAO[1]);
     glm::mat4 RailModel = glm::mat4(1.0f);
-    //RailModel = glm::rotate(RailModel, glm::radians(AxisAnglex), glm::vec3(1.0f, 0.0f, 0.0f));
-    //RailModel = glm::rotate(RailModel, glm::radians(AxisAngley), glm::vec3(0.0f, 1.0f, 0.0f));
     RailModel = glm::translate(RailModel, glm::vec3(CrainTransSize.AllTransX, CrainTransSize.AllTransY, CrainTransSize.AllTransZ));
     //RailModel = glm::scale(RailModel, glm::vec3(0.5f, 0.5f, 0.5f));
     unsigned int RailModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
@@ -245,9 +256,8 @@ GLvoid drawscene() {
     //ÅÊÅ© ¸öÅë ºÎºÐ
     glBindVertexArray(VAO[2]);
     glm::mat4 BodyModel = glm::mat4(1.0f);
-    //BodyModel = glm::rotate(BodyModel, glm::radians(AxisAnglex), glm::vec3(1.0f, 0.0f, 0.0f));
-    //BodyModel = glm::rotate(BodyModel, glm::radians(AxisAngley), glm::vec3(0.0f, 1.0f, 0.0f));
     BodyModel = glm::translate(BodyModel, glm::vec3(CrainTransSize.AllTransX, CrainTransSize.AllTransY, CrainTransSize.AllTransZ));
+    BodyModel = glm::rotate(BodyModel, glm::radians(CrainRotateSize.bodyRotateY), glm::vec3(0.0f, 1.0f, 0.0f));
     //BodyModel = glm::scale(BodyModel, glm::vec3(0.5f, 0.5f, 0.5f));
     unsigned int BodyModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
     glUniformMatrix4fv(BodyModelLocation, 1, GL_FALSE, glm::value_ptr(BodyModel));
@@ -258,10 +268,9 @@ GLvoid drawscene() {
     //ÅÊÅ© ¿ÞÂÊ ÆÈ ºÎºÐ
     glBindVertexArray(VAO[3]);
     glm::mat4 LeftArmModel = glm::mat4(1.0f);
-    //LeftArmModel = glm::rotate(LeftArmModel, glm::radians(AxisAnglex), glm::vec3(1.0f, 0.0f, 0.0f));
-    //LeftArmModel = glm::rotate(LeftArmModel, glm::radians(AxisAngley), glm::vec3(0.0f, 1.0f, 0.0f));
-    LeftArmModel = glm::translate(LeftArmModel, glm::vec3(-0.2f, 0.0f, 0.0f));
     LeftArmModel = glm::translate(LeftArmModel, glm::vec3(CrainTransSize.AllTransX, CrainTransSize.AllTransY, CrainTransSize.AllTransZ));
+    LeftArmModel = glm::rotate(LeftArmModel, glm::radians(CrainRotateSize.bodyRotateY), glm::vec3(0.0f, 1.0f, 0.0f));
+    LeftArmModel = glm::translate(LeftArmModel, glm::vec3(-0.2f, 0.0f, 0.0f));
     //LeftArmModel = glm::scale(LeftArmModel, glm::vec3(0.5f, 0.5f, 0.5f));
     unsigned int LeftArmModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
     glUniformMatrix4fv(LeftArmModelLocation, 1, GL_FALSE, glm::value_ptr(LeftArmModel));
@@ -274,8 +283,9 @@ GLvoid drawscene() {
     glm::mat4 RightArmModel = glm::mat4(1.0f);
     //RightArmModel = glm::rotate(RightArmModel, glm::radians(AxisAnglex), glm::vec3(1.0f, 0.0f, 0.0f));
     //RightArmModel = glm::rotate(RightArmModel, glm::radians(AxisAngley), glm::vec3(0.0f, 1.0f, 0.0f));
-    RightArmModel = glm::translate(RightArmModel, glm::vec3(0.2f, 0.0f, 0.0f));
     RightArmModel = glm::translate(RightArmModel, glm::vec3(CrainTransSize.AllTransX, CrainTransSize.AllTransY, CrainTransSize.AllTransZ));
+    RightArmModel = glm::rotate(RightArmModel, glm::radians(CrainRotateSize.bodyRotateY), glm::vec3(0.0f, 1.0f, 0.0f));
+    RightArmModel = glm::translate(RightArmModel, glm::vec3(0.2f, 0.0f, 0.0f));
     //RightArmModel = glm::scale(RightArmModel, glm::vec3(0.5f, 0.5f, 0.5f));
     unsigned int RightArmModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
     glUniformMatrix4fv(RightArmModelLocation, 1, GL_FALSE, glm::value_ptr(RightArmModel));
@@ -316,7 +326,7 @@ GLvoid keyboard(unsigned char key, int x, int y) {
     switch (key)
     {
     case 'c': //ÃÊ±âÈ­
-        CameraPoint.ViewZ = 2.3f;
+        CameraPoint.ViewZ = 3.5f;
         CameraPoint.ViewX = 0.0f;
         CameraPoint.ViewY = 1.0f;
        
@@ -346,6 +356,17 @@ GLvoid keyboard(unsigned char key, int x, int y) {
     case 'B':
         CrainTransSize.AllTransZ -= 0.2f;
         break;
+    case 'm':
+        CrainBodyRotateA = !CrainBodyRotateA;
+        CrainBodyRotateB = false;
+        break;
+    case 'M':
+        CrainBodyRotateB = !CrainBodyRotateB;
+        CrainBodyRotateA = false;
+        break;
+    case 't':
+        CrainArmRotateAB = !CrainArmRotateAB;
+        break;
     case 'q':
         exit(0);
         cout << "exit the program" << endl;
@@ -357,8 +378,20 @@ GLvoid keyboard(unsigned char key, int x, int y) {
 }
 
 void timer(int value) {
+    if (CrainBodyRotateA) {
+        CrainRotateSize.bodyRotateY++;
+    }
+    if (CrainBodyRotateB) {
+        CrainRotateSize.bodyRotateY--;
+    }
+    if (CrainArmRotateAB) {
+        if (CrainRotateSize.armLRotateX >= 90) {
 
-   
+        }
+        else if (CrainRotateSize.armLRotateX <= -90) {
+
+        }
+    }
     glutPostRedisplay();
     glutTimerFunc(60, timer, 1);
 }
