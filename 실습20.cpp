@@ -29,6 +29,9 @@ void resize(int width, int height);
 GLvoid drawscene(GLvoid);
 GLvoid reshape(int w, int h);
 GLvoid keyboard(unsigned char key, int x, int y);
+
+void drawmodels();
+
 float CameraTheta = 0;
 float ObjectTheta = 0;
 
@@ -46,7 +49,7 @@ struct boolsave {
     bool crainBodyRA = false;
     bool crainBodyRB = false;
     bool crainArmRAB = false;
-    
+
     bool cameraReA = false;
     bool cameraReB = false;
     bool cameraRoA = false;
@@ -113,7 +116,7 @@ int main(int argc, char** argv) {
     ReadObj("crainCube2.obj", ModelsValue[2]);
     ReadObj("crainArm.obj", ModelsValue[3]);
     ReadObj("crainArm.obj", ModelsValue[4]);
-    
+
     make_vertexShaders();
     make_fragmentShaders();
     initbuffer();
@@ -221,6 +224,71 @@ GLuint make_shaderProgram() {
 
     return 1;
 }
+void drawmodels() {
+    //바닥면
+    glBindVertexArray(VAO[0]);
+    glm::mat4 PlaneModel = glm::mat4(1.0f);
+    PlaneModel = glm::scale(PlaneModel, glm::vec3(2.5f, 0, 2.5f));
+    unsigned int PlaneModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
+    glUniformMatrix4fv(PlaneModelLocation, 1, GL_FALSE, glm::value_ptr(PlaneModel));
+    unsigned int PlaneModelFragLocation = glGetUniformLocation(shaderID[1], "vColor");
+    glUniform3f(PlaneModelFragLocation, 0.5f, 0.75f, 0.27f);
+    glDrawArrays(GL_QUADS, 0, ModelsValue[0].size());
+
+    //탱크 다리부분
+    glBindVertexArray(VAO[1]);
+    glm::mat4 RailModel = glm::mat4(1.0f);
+    RailModel = glm::translate(RailModel, glm::vec3(CrainTransSize.AllTransX, CrainTransSize.AllTransY, CrainTransSize.AllTransZ));
+    unsigned int RailModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
+    glUniformMatrix4fv(RailModelLocation, 1, GL_FALSE, glm::value_ptr(RailModel));
+    unsigned int RailModelFragLocation = glGetUniformLocation(shaderID[1], "vColor");
+    glUniform3f(RailModelFragLocation, 0.5f, 0.5f, 0.0f);
+    glDrawArrays(GL_QUADS, 0, 24);
+
+
+    //탱크 몸통 부분
+    glBindVertexArray(VAO[2]);
+    glm::mat4 BodyModel = glm::mat4(1.0f);
+    BodyModel = glm::translate(BodyModel, glm::vec3(CrainTransSize.AllTransX, CrainTransSize.AllTransY, CrainTransSize.AllTransZ));
+    BodyModel = glm::rotate(BodyModel, glm::radians(CrainRotateSize.bodyRotateY), glm::vec3(0.0f, 1.0f, 0.0f));
+    unsigned int BodyModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
+    glUniformMatrix4fv(BodyModelLocation, 1, GL_FALSE, glm::value_ptr(BodyModel));
+    unsigned int BodyModelFragLocation = glGetUniformLocation(shaderID[1], "vColor");
+    glUniform3f(BodyModelFragLocation, 0.56f, 0.47f, 0.29f);
+    glDrawArrays(GL_QUADS, 0, 24);
+
+    //탱크 왼쪽 팔 부분
+    glBindVertexArray(VAO[3]);
+    glm::mat4 LeftArmModel = glm::mat4(1.0f);
+    LeftArmModel = glm::translate(LeftArmModel, glm::vec3(CrainTransSize.AllTransX, CrainTransSize.AllTransY, CrainTransSize.AllTransZ));
+    LeftArmModel = glm::rotate(LeftArmModel, glm::radians(CrainRotateSize.bodyRotateY), glm::vec3(0.0f, 1.0f, 0.0f));
+    LeftArmModel = glm::translate(LeftArmModel, glm::vec3(-0.2f, 0.0f, 0.0f));
+    LeftArmModel = glm::translate(LeftArmModel, glm::vec3(0.0f, 0.4f, 0.0f));
+    LeftArmModel = glm::rotate(LeftArmModel, glm::radians(CrainRotateSize.armLRotateX), glm::vec3(1.0f, 0.0f, 0.0f));
+    LeftArmModel = glm::translate(LeftArmModel, glm::vec3(0.0f, -0.4f, 0.0f));
+    unsigned int LeftArmModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
+    glUniformMatrix4fv(LeftArmModelLocation, 1, GL_FALSE, glm::value_ptr(LeftArmModel));
+    unsigned int LeftArmModelFragLocation = glGetUniformLocation(shaderID[1], "vColor");
+    glUniform3f(LeftArmModelFragLocation, 0.75f, 0.75f, 0.75f);
+    glDrawArrays(GL_QUADS, 0, 24);
+
+    //탱크 오른쪽 팔 부분
+    glBindVertexArray(VAO[4]);
+    glm::mat4 RightArmModel = glm::mat4(1.0f);
+    RightArmModel = glm::translate(RightArmModel, glm::vec3(CrainTransSize.AllTransX, CrainTransSize.AllTransY, CrainTransSize.AllTransZ));
+    RightArmModel = glm::rotate(RightArmModel, glm::radians(CrainRotateSize.bodyRotateY), glm::vec3(0.0f, 1.0f, 0.0f));
+    RightArmModel = glm::translate(RightArmModel, glm::vec3(0.2f, 0.0f, 0.0f));
+    RightArmModel = glm::translate(RightArmModel, glm::vec3(0.0f, 0.4f, 0.0f));
+    RightArmModel = glm::rotate(RightArmModel, glm::radians(CrainRotateSize.armRRotateX), glm::vec3(1.0f, 0.0f, 0.0f));
+    RightArmModel = glm::translate(RightArmModel, glm::vec3(0.0f, -0.4f, 0.0f));
+    unsigned int RightArmModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
+    glUniformMatrix4fv(RightArmModelLocation, 1, GL_FALSE, glm::value_ptr(RightArmModel));
+    unsigned int RightArmModelFragLocation = glGetUniformLocation(shaderID[1], "vColor");
+    glUniform3f(RightArmModelFragLocation, 0.22f, 0.18f, 0.19f);
+    glDrawArrays(GL_QUADS, 0, 24);
+
+}
+
 
 GLvoid drawscene() {
     glClearColor(0.5, 0.5, 0.5, 1.0f);
@@ -229,9 +297,12 @@ GLvoid drawscene() {
     initbuffer();
 
     glEnable(GL_DEPTH_TEST);
-    //glEnable(GL_CULL_FACE);
+    glEnable(GL_CULL_FACE);
 
     glUseProgram(shaderID[1]);
+
+    //메인뷰
+    glViewport(0, windowHeight / 4, windowWidth / 2, windowHeight / 2);
 
     unsigned int ModelViewLocation = glGetUniformLocation(shaderID[1], "viewtransform");
     unsigned int ModelProjLocation = glGetUniformLocation(shaderID[1], "projectiontransform");
@@ -242,15 +313,15 @@ GLvoid drawscene() {
     glm::vec4 CameraPosDis = glm::vec4(ModelCameraPos, 1);
     CameraPosDis = CameraPosDistance * CameraPosDis;
     glm::vec3 CameraPostionDirection = glm::vec3(CameraPosDis.x, CameraPosDis.y, CameraPosDis.z);  //EYE 변환
-    
+
     glm::vec3 ModelCameraTarget = glm::vec3(0.0f, 0.0f, 0.0f); //--- 카메라 바라보는 방향
     glm::vec3 ModelCameraDirection = CameraPostionDirection - ModelCameraTarget;
-    
+
     glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-    
+
     glm::mat4 CameraDirectionDistance = glm::mat4(1.0f);
     CameraDirectionDistance = glm::rotate(CameraDirectionDistance, glm::radians(CameraTheta), glm::vec3(0.0f, 1.0f, 0.0f));
-    glm::vec4 CameraDirectionDis = CameraDirectionDistance * glm::vec4(ModelCameraDirection, 1);    
+    glm::vec4 CameraDirectionDis = CameraDirectionDistance * glm::vec4(ModelCameraDirection, 1);
     glm::vec3 CameraDirection;
     CameraDirection.x = CameraDirectionDis.x;
     CameraDirection.y = CameraDirectionDis.y;
@@ -266,91 +337,65 @@ GLvoid drawscene() {
         CenterDirection.y + CameraPostionDirection.y, CenterDirection.z + CameraPostionDirection.z); //n
 
     glm::vec3 ModelCameraRight = glm::normalize(glm::cross(up, CameraDirection)); //v
-    
+
     glm::vec3 cameraUp = glm::cross(CameraDirection, ModelCameraRight); //u
 
     glm::mat4 ModelView = glm::mat4(1.0f);
     ModelView = glm::lookAt(CameraPostionDirection, CenterDirectionDis, cameraUp);
     glUniformMatrix4fv(ModelViewLocation, 1, GL_FALSE, glm::value_ptr(ModelView));
 
-    
-
-
     //원근
     glm::mat4 ModelProj = glm::mat4(1.0f);
     ModelProj = glm::perspective(glm::radians(60.0f), (float)windowWidth / windowHeight, 0.1f, 100.0f);
     glUniformMatrix4fv(ModelProjLocation, 1, GL_FALSE, &ModelProj[0][0]);
+   
+    drawmodels();
 
-    cout << ModelCameraRight.x << ',' << ModelCameraRight.y << ',' << ModelCameraRight.z << endl;
+    //탑뷰
+    glViewport(windowWidth / 2, windowHeight / 2, windowWidth / 2, windowHeight / 2);
 
-    //바닥면
-    glBindVertexArray(VAO[0]);
-    glm::mat4 PlaneModel = glm::mat4(1.0f);
-    PlaneModel = glm::scale(PlaneModel, glm::vec3(2.5f, 0, 2.5f));
-    unsigned int PlaneModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
-    glUniformMatrix4fv(PlaneModelLocation, 1, GL_FALSE, glm::value_ptr(PlaneModel));
-    unsigned int PlaneModelFragLocation = glGetUniformLocation(shaderID[1], "vColor");
-    glUniform3f(PlaneModelFragLocation, 0.5f, 0.75f, 0.27f);
-    glDrawArrays(GL_QUADS, 0, ModelsValue[0].size());
-
-    //탱크 다리부분
-    glBindVertexArray(VAO[1]);
-    glm::mat4 RailModel = glm::mat4(1.0f);
-    RailModel = glm::translate(RailModel, glm::vec3(CrainTransSize.AllTransX, CrainTransSize.AllTransY, CrainTransSize.AllTransZ));
-    //RailModel = glm::scale(RailModel, glm::vec3(0.5f, 0.5f, 0.5f));
-    unsigned int RailModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
-    glUniformMatrix4fv(RailModelLocation, 1, GL_FALSE, glm::value_ptr(RailModel));
-    unsigned int RailModelFragLocation = glGetUniformLocation(shaderID[1], "vColor");
-    glUniform3f(RailModelFragLocation, 0.5f, 0.5f, 0.0f);
-    glDrawArrays(GL_QUADS, 0, 24);
-
-
-    //탱크 몸통 부분
-    glBindVertexArray(VAO[2]);
-    glm::mat4 BodyModel = glm::mat4(1.0f);
-    BodyModel = glm::translate(BodyModel, glm::vec3(CrainTransSize.AllTransX, CrainTransSize.AllTransY, CrainTransSize.AllTransZ));
-    BodyModel = glm::rotate(BodyModel, glm::radians(CrainRotateSize.bodyRotateY), glm::vec3(0.0f, 1.0f, 0.0f));
-    //BodyModel = glm::scale(BodyModel, glm::vec3(0.5f, 0.5f, 0.5f));
-    unsigned int BodyModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
-    glUniformMatrix4fv(BodyModelLocation, 1, GL_FALSE, glm::value_ptr(BodyModel));
-    unsigned int BodyModelFragLocation = glGetUniformLocation(shaderID[1], "vColor");
-    glUniform3f(BodyModelFragLocation, 0.56f, 0.47f, 0.29f);
-    glDrawArrays(GL_QUADS, 0, 24);
+    unsigned int TopViewLocation = glGetUniformLocation(shaderID[1], "viewtransform");
     
-    //탱크 왼쪽 팔 부분
-    glBindVertexArray(VAO[3]);
-    glm::mat4 LeftArmModel = glm::mat4(1.0f);
-    LeftArmModel = glm::translate(LeftArmModel, glm::vec3(CrainTransSize.AllTransX, CrainTransSize.AllTransY, CrainTransSize.AllTransZ));
-    LeftArmModel = glm::rotate(LeftArmModel, glm::radians(CrainRotateSize.bodyRotateY), glm::vec3(0.0f, 1.0f, 0.0f));
-    LeftArmModel = glm::translate(LeftArmModel, glm::vec3(-0.2f, 0.0f, 0.0f));
-    LeftArmModel = glm::translate(LeftArmModel, glm::vec3(0.0f, 0.4f, 0.0f));
-    LeftArmModel = glm::rotate(LeftArmModel, glm::radians(CrainRotateSize.armLRotateX), glm::vec3(1.0f, 0.0f, 0.0f));
-    LeftArmModel = glm::translate(LeftArmModel, glm::vec3(0.0f, -0.4f, 0.0f));
-    //LeftArmModel = glm::scale(LeftArmModel, glm::vec3(0.5f, 0.5f, 0.5f));
-    unsigned int LeftArmModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
-    glUniformMatrix4fv(LeftArmModelLocation, 1, GL_FALSE, glm::value_ptr(LeftArmModel));
-    unsigned int LeftArmModelFragLocation = glGetUniformLocation(shaderID[1], "vColor");
-    glUniform3f(LeftArmModelFragLocation, 0.75f, 0.75f, 0.75f);
-    glDrawArrays(GL_QUADS, 0, 24);
-    
-    //탱크 오른쪽 팔 부분
-    glBindVertexArray(VAO[4]);
-    glm::mat4 RightArmModel = glm::mat4(1.0f);
-    //RightArmModel = glm::rotate(RightArmModel, glm::radians(AxisAnglex), glm::vec3(1.0f, 0.0f, 0.0f));
-    //RightArmModel = glm::rotate(RightArmModel, glm::radians(AxisAngley), glm::vec3(0.0f, 1.0f, 0.0f));
-    RightArmModel = glm::translate(RightArmModel, glm::vec3(CrainTransSize.AllTransX, CrainTransSize.AllTransY, CrainTransSize.AllTransZ));
-    RightArmModel = glm::rotate(RightArmModel, glm::radians(CrainRotateSize.bodyRotateY), glm::vec3(0.0f, 1.0f, 0.0f));
-    RightArmModel = glm::translate(RightArmModel, glm::vec3(0.2f, 0.0f, 0.0f));
-    RightArmModel = glm::translate(RightArmModel, glm::vec3(0.0f, 0.4f, 0.0f));
-    RightArmModel = glm::rotate(RightArmModel, glm::radians(CrainRotateSize.armRRotateX), glm::vec3(1.0f, 0.0f, 0.0f));
-    RightArmModel = glm::translate(RightArmModel, glm::vec3(0.0f, -0.4f, 0.0f));
-    //RightArmModel = glm::scale(RightArmModel, glm::vec3(0.5f, 0.5f, 0.5f));
-    unsigned int RightArmModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
-    glUniformMatrix4fv(RightArmModelLocation, 1, GL_FALSE, glm::value_ptr(RightArmModel));
-    unsigned int RightArmModelFragLocation = glGetUniformLocation(shaderID[1], "vColor");
-    glUniform3f(RightArmModelFragLocation, 0.22f, 0.18f, 0.19f);
-    glDrawArrays(GL_QUADS, 0, 24);
+    glm::vec3 TopCameraPos = glm::vec3(0.0f, 4.0f, 0.0f); // EYE
 
+    glm::vec3 TopCameraTarget = glm::vec3(0.0f, 0.0f, 0.0f); //--- 카메라 바라보는 방향
+    glm::vec3 TopCameraDirection = TopCameraTarget - TopCameraPos;
+
+    glm::vec3 TopViewUp = glm::vec3(0.0f, 0.0f, -1.0f);
+
+    glm::mat4 TopView = glm::mat4(1.0f);
+    TopView = glm::lookAt(TopCameraPos, TopCameraDirection, TopViewUp);
+    glUniformMatrix4fv(TopViewLocation, 1, GL_FALSE, glm::value_ptr(TopView));
+
+    glm::mat4 TopOrtho = glm::mat4(1.0f);
+    TopOrtho = glm::ortho(-2.0f, 2.0f, -2.0f, 2.0f, 0.7f, 20.0f);
+    unsigned int TopOrthoLocation = glGetUniformLocation(shaderID[1], "projectiontransform");
+    glUniformMatrix4fv(TopOrthoLocation, 1, GL_FALSE, glm::value_ptr(TopOrtho)); //직각투영
+
+    drawmodels();
+
+    //프론트뷰
+    glViewport(windowWidth / 2, 0, windowWidth / 2, windowHeight / 2);
+
+    unsigned int FrontViewLocation = glGetUniformLocation(shaderID[1], "viewtransform");
+ 
+    glm::vec3 FrontCameraPos = glm::vec3(0.0f, 0.0f, CameraPoint.ViewZ); // EYE
+
+    glm::vec3 FrontCameraTarget = glm::vec3(0.0f, 0.0f, 0.0f); //--- 카메라 바라보는 방향
+    glm::vec3 FrontCameraDirection = FrontCameraTarget - FrontCameraPos;
+
+    glm::vec3 FrontViewUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+    glm::mat4 FrontView = glm::mat4(1.0f);
+    FrontView = glm::lookAt(FrontCameraPos, FrontCameraDirection, FrontViewUp);
+    glUniformMatrix4fv(FrontViewLocation, 1, GL_FALSE, glm::value_ptr(FrontView));
+
+    glm::mat4 FrontOrtho = glm::mat4(1.0f);
+    FrontOrtho = glm::ortho(-2.0f, 2.0f, -2.0f, 2.0f, 0.7f, 20.0f);
+    unsigned int FrontOrthoLocation = glGetUniformLocation(shaderID[1], "projectiontransform");
+    glUniformMatrix4fv(FrontOrthoLocation, 1, GL_FALSE, glm::value_ptr(FrontOrtho)); //직각투영
+
+    drawmodels();
 
     glutSwapBuffers();
 }
@@ -366,7 +411,7 @@ void resize(int width, int height) {
 }
 
 void initbuffer() {
-   
+
     glGenVertexArrays(5, VAO);
 
     for (int i = 0; i < 5; i++) {
@@ -377,15 +422,15 @@ void initbuffer() {
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0);
         glEnableVertexAttribArray(0);
     }
-   
+
 }
 
 GLvoid keyboard(unsigned char key, int x, int y) {
     switch (key)
     {
     case 'c': //초기화
-        CameraPoint.ViewZ = 3.5f;
-        CameraPoint.ViewX = 1.0f;
+        CameraPoint.ViewZ = 2.0f;
+        CameraPoint.ViewX = 0.0f;
         CameraPoint.ViewY = 1.0f;
         memset(&CrainRotateSize, 0, sizeof(CrainRotateSize));
         memset(&CrainTransSize, 0, sizeof(CrainTransSize));
@@ -474,7 +519,7 @@ GLvoid keyboard(unsigned char key, int x, int y) {
         CameraRevolutionB = !CameraRevolutionB;
         CameraRevolutionA = false;
         break;
-        
+
     case 'q':
         exit(0);
         cout << "exit the program" << endl;
@@ -499,7 +544,7 @@ void timer(int value) {
         else if (CrainRotateSize.armLRotateX <= -90) {
             ArmRotateVector = 1;
         }
-        
+
         if (ArmRotateVector == 1) {
             CrainRotateSize.armLRotateX++;
             CrainRotateSize.armRRotateX--;
