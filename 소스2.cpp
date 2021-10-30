@@ -32,22 +32,15 @@ GLvoid drawscene(GLvoid);
 GLvoid reshape(int w, int h);
 GLvoid keyboard(unsigned char key, int x, int y);
 
+void randomScale(int i, int j);
 void makeModelColor(int i, int j);
 void drawmodels();
-
-
 
 float CameraTheta = 0;
 float ObjectTheta = 0;
 
 bool OnceMakeColor = true;
-bool CrainBodyRotateA = false;
-bool CrainBodyRotateB = false;
-bool CrainArmRotateAB = false;
-bool CameraRevolutionA = false;
-bool CameraRevolutionB = false;
-bool CameraRotationA = false;
-bool CameraRotationB = false;
+bool MoutainScaleOn = false;
 
 int windowWidth, windowHeight;
 int ArmRotateVector = 1;
@@ -58,6 +51,8 @@ float ModelColorR[COL][ROW];
 float ModelColorG[COL][ROW];
 float ModelColorB[COL][ROW];
 
+float MoutainScale[COL][ROW];
+int ScaleCount[COL][ROW];
 
 struct boolsave {
     bool crainBodyRA = false;
@@ -69,6 +64,7 @@ struct boolsave {
     bool cameraRoA = false;
     bool cameraRoB = false;
 }boolsaver;
+
 struct Modelcolor {
     float modelR = 0.0f;
     float modelB = 0.0f;
@@ -77,9 +73,10 @@ struct Modelcolor {
 
 struct CameraViewPoint {
     float ViewX = 0.0f;
-    float ViewY = 0.0f;
-    float ViewZ = 7.0f;
+    float ViewY = 2.0f;
+    float ViewZ = 6.0f;
 }CameraPoint;
+
 struct CrainRotate {
     float bodyRotateX = 0.0f;
     float bodyRotateY = 0.0f;
@@ -102,7 +99,6 @@ struct CrainTrans {
     float AllTransZ = 0.0f;
 }CrainTransSize;
 
-
 vector<glm::vec4>ModelsValue[2];
 
 GLuint VAO[2], VBO[2];
@@ -111,8 +107,6 @@ GLuint qobjshader;
 GLuint vertexshader;
 GLuint fragmentshader;
 GLuint triangleshaderProgram;
-
-
 
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
@@ -259,22 +253,26 @@ void drawmodels() {
     glUniform3f(PlaneModelFragLocation, 0.5f, 0.75f, 0.27f);
     glDrawArrays(GL_QUADS, 0, ModelsValue[0].size());
 
-    //탱크 다리부분
     //스케일 y 다시
     if (OnceMakeColor) {
         for (int i = 0; i < ModelCountCol; i++) {
             for (int j = 0; j < ModelCountRow; j++) {
                 makeModelColor(i, j);
+                randomScale(i, j);
+                ScaleCount[i][j] = 0;
             }
         }
     }
+
     OnceMakeColor = false;
+
     for (int i = 0; i < ModelCountCol; i++) {
         for (int j = 0; j < ModelCountRow; j++) {            
             glBindVertexArray(VAO[1]);
             glm::mat4 RailModel = glm::mat4(1.0f);
             RailModel = glm::translate(RailModel, glm::vec3(i * 0.25f-0.5f, CrainTransSize.AllTransY + 0.02f, j * 0.25f-0.5f));
-            RailModel = glm::scale(RailModel, glm::vec3(0.25f, 2.0f, 0.25f));
+            RailModel = glm::translate(RailModel, glm::vec3(-0.5f, 0.0f, -0.5f));
+            RailModel = glm::scale(RailModel, glm::vec3(0.25f, MoutainScale[i][j], 0.25f));
             unsigned int RailModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
             glUniformMatrix4fv(RailModelLocation, 1, GL_FALSE, glm::value_ptr(RailModel));
             unsigned int RailModelFragLocation = glGetUniformLocation(shaderID[1], "vColor");
@@ -295,6 +293,13 @@ void makeModelColor(int i, int j) {
     ModelColorB[i][j] = mB;
 }
 
+void randomScale(int i,int j) {
+    random_device rd;
+    default_random_engine dre(rd());
+    uniform_real_distribution<>uid(0.5, 3.5);
+    float SY = uid(dre);
+    MoutainScale[i][j] = SY;
+}
 
 GLvoid drawscene() {
     glClearColor(0.5, 0.5, 0.5, 1.0f);
@@ -308,7 +313,7 @@ GLvoid drawscene() {
     glUseProgram(shaderID[1]);
 
     //메인뷰
-    glViewport(0, windowHeight / 4, windowWidth / 2, windowHeight / 2);
+    glViewport(0, 0, windowWidth, windowHeight);
 
     unsigned int ModelViewLocation = glGetUniformLocation(shaderID[1], "viewtransform");
     unsigned int ModelProjLocation = glGetUniformLocation(shaderID[1], "projectiontransform");
@@ -358,7 +363,7 @@ GLvoid drawscene() {
     drawmodels();
 
     //탑뷰
-    glViewport(windowWidth / 2, windowHeight / 2, windowWidth / 2, windowHeight / 2);
+    glViewport(windowWidth * 3 / 4, windowHeight * 3 / 4, windowWidth / 4, windowHeight / 4);
 
     unsigned int TopViewLocation = glGetUniformLocation(shaderID[1], "viewtransform");
 
@@ -412,21 +417,6 @@ GLvoid keyboard(unsigned char key, int x, int y) {
     switch (key)
     {
     case 'c': //초기화
-        CameraPoint.ViewZ = 2.0f;
-        CameraPoint.ViewX = 0.0f;
-        CameraPoint.ViewY = 1.0f;
-        memset(&CrainRotateSize, 0, sizeof(CrainRotateSize));
-        memset(&CrainTransSize, 0, sizeof(CrainTransSize));
-        ObjectTheta = 0;
-        CameraTheta = 0;
-
-        CrainBodyRotateA = false;
-        CrainBodyRotateB = false;
-        CrainArmRotateAB = false;
-        CameraRotationA = false;
-        CameraRotationB = false;
-        CameraRevolutionB = false;
-        CameraRevolutionA = false;
 
         break;
         //카메라 방향
@@ -437,12 +427,10 @@ GLvoid keyboard(unsigned char key, int x, int y) {
         CameraPoint.ViewX -= 0.15f;
         break;
     case 'y':
-        CameraRotationA = !CameraRotationA;
-        CameraRotationB = false;
+        
         break;
     case 'Y':
-        CameraRotationB = !CameraRotationB;
-        CameraRotationA = false;
+        
         break;
     case 'z':
         CameraPoint.ViewZ += 0.15f;
@@ -450,59 +438,9 @@ GLvoid keyboard(unsigned char key, int x, int y) {
     case 'Z':
         CameraPoint.ViewZ -= 0.15f;
         break;
-    case 'b':
-        CrainTransSize.AllTransZ += 0.2f;
-        break;
-    case 'B':
-        CrainTransSize.AllTransZ -= 0.2f;
-        break;
-    case 'm':
-        CrainBodyRotateA = !CrainBodyRotateA;
-        CrainBodyRotateB = false;
-        break;
-    case 'M':
-        CrainBodyRotateB = !CrainBodyRotateB;
-        CrainBodyRotateA = false;
-        break;
     case 't':
-        CrainArmRotateAB = !CrainArmRotateAB;
+        MoutainScaleOn = !MoutainScaleOn;
         break;
-    case 's':
-        boolsaver.crainBodyRA = CrainBodyRotateA;
-        boolsaver.crainBodyRB = CrainBodyRotateB;
-        boolsaver.crainArmRAB = CrainArmRotateAB;
-        boolsaver.cameraReA = CameraRevolutionA;
-        boolsaver.cameraReB = CameraRevolutionB;
-        boolsaver.cameraRoA = CameraRotationA;
-        boolsaver.cameraRoB = CameraRotationB;
-
-        CrainBodyRotateA = false;
-        CrainBodyRotateB = false;
-        CrainArmRotateAB = false;
-        CameraRevolutionA = false;
-        CameraRevolutionB = false;
-        CameraRotationA = false;
-        CameraRotationB = false;
-        break;
-    case 'S':
-        CrainBodyRotateA = boolsaver.crainBodyRA;
-        CrainBodyRotateB = boolsaver.crainBodyRB;
-        CrainArmRotateAB = boolsaver.crainArmRAB;
-        CameraRevolutionA = boolsaver.cameraReA;
-        CameraRevolutionB = boolsaver.cameraReB;
-        CameraRotationA = boolsaver.cameraRoA;
-        CameraRotationB = boolsaver.cameraRoB;
-
-        break;
-    case 'r':
-        CameraRevolutionA = !CameraRevolutionA;
-        CameraRevolutionB = false;
-        break;
-    case 'R':
-        CameraRevolutionB = !CameraRevolutionB;
-        CameraRevolutionA = false;
-        break;
-
     case 'q':
         exit(0);
         cout << "exit the program" << endl;
@@ -514,43 +452,25 @@ GLvoid keyboard(unsigned char key, int x, int y) {
 }
 
 void timer(int value) {
-    if (CrainBodyRotateA) {
-        CrainRotateSize.bodyRotateY++;
-    }
-    if (CrainBodyRotateB) {
-        CrainRotateSize.bodyRotateY--;
-    }
-    if (CrainArmRotateAB) {
-        if (CrainRotateSize.armLRotateX >= 90) {
-            ArmRotateVector = -1;
-        }
-        else if (CrainRotateSize.armLRotateX <= -90) {
-            ArmRotateVector = 1;
-        }
+    if (MoutainScaleOn) {
+        for (int i = 0; i < COL; i++) {
+            for (int j = 0; j < ROW; j++) {
+                if (MoutainScale[i][j] >= 8.0) {
+                    ScaleCount[i][j] ++;
+                }
+                else if (MoutainScale[i][j] <= 0.3) {
+                    ScaleCount[i][j]--;
+                }
 
-        if (ArmRotateVector == 1) {
-            CrainRotateSize.armLRotateX++;
-            CrainRotateSize.armRRotateX--;
+                if (ScaleCount[i][j] == 0) {
+                    MoutainScale[i][j] += 0.02f;
+                }
+                else {
+                    MoutainScale[i][j] -= 0.02f;
+                }
+            }
         }
-        else if (ArmRotateVector == -1) {
-            CrainRotateSize.armLRotateX--;
-            CrainRotateSize.armRRotateX++;
-        }
     }
-    if (CameraRevolutionA) {
-        CameraTheta++;
-    }
-    if (CameraRevolutionB) {
-        CameraTheta--;
-    }
-    if (CameraRotationA) {
-        ObjectTheta++;
-    }
-    if (CameraRotationB) {
-        ObjectTheta--;
-    }
-
-
     glutPostRedisplay();
     glutTimerFunc(1, timer, 1);
 }

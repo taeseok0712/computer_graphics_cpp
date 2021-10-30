@@ -310,20 +310,19 @@ void drawmodels() {
             swap(ModelsValue[ModelCountNumber + 3], ModelsValue[ModelNumber + 3]);
             ModelNumber--;
         }
-        
+
+        else {
             unsigned int ExistSqureLocation = glGetUniformLocation(shaderID[1], "modeltransform");
             glUniformMatrix4fv(ExistSqureLocation, 1, GL_FALSE, glm::value_ptr(ExistSqure));
             unsigned int ExistSqureFragLocation = glGetUniformLocation(shaderID[1], "vColor");
             glUniform3f(ExistSqureFragLocation, 0.1f, 0.5f, 0.2f);
-
             glDrawArrays(GL_QUADS, 0, 24);
-        
+        }
     }
 }
 
-
 GLvoid drawscene() {
-    glClearColor(0.5, 0.5, 0.5, 1.0f);
+    glClearColor(0.0, 0.0, 0.0, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     initbuffer();
