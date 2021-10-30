@@ -1,3 +1,5 @@
+#include "readObj.h"
+#include <vector>
 #include <iostream>
 #include <gl/glew.h>
 #include <gl/freeglut.h>
@@ -6,15 +8,11 @@
 #include <Windows.h>
 #include <fstream>
 #include <sstream>
-#include <vector>
 #include <string>
 #include <queue>
 #include <glm/glm/glm.hpp>
 #include <glm/glm/ext.hpp>
 #include <glm/glm/gtc/matrix_transform.hpp>
-#include "readObj.h"
-#define COL 25
-#define ROW 25
 
 using namespace std;
 
@@ -32,15 +30,12 @@ GLvoid drawscene(GLvoid);
 GLvoid reshape(int w, int h);
 GLvoid keyboard(unsigned char key, int x, int y);
 
-void makeModelColor(int i, int j);
+void randomExistSquare(int i);
 void drawmodels();
-
-
 
 float CameraTheta = 0;
 float ObjectTheta = 0;
 
-bool OnceMakeColor = true;
 bool CrainBodyRotateA = false;
 bool CrainBodyRotateB = false;
 bool CrainArmRotateAB = false;
@@ -48,17 +43,11 @@ bool CameraRevolutionA = false;
 bool CameraRevolutionB = false;
 bool CameraRotationA = false;
 bool CameraRotationB = false;
+bool randomExist = true;
 
+int ModelNumber = 30;
 int windowWidth, windowHeight;
 int ArmRotateVector = 1;
-int ModelCountCol = 0;
-int ModelCountRow = 0;
-
-float ModelColorR[COL][ROW];
-float ModelColorG[COL][ROW];
-float ModelColorB[COL][ROW];
-
-
 struct boolsave {
     bool crainBodyRA = false;
     bool crainBodyRB = false;
@@ -69,16 +58,11 @@ struct boolsave {
     bool cameraRoA = false;
     bool cameraRoB = false;
 }boolsaver;
-struct Modelcolor {
-    float modelR = 0.0f;
-    float modelB = 0.0f;
-    float modelG = 0.0f;
-}ModelColorSize;
 
 struct CameraViewPoint {
     float ViewX = 0.0f;
-    float ViewY = 0.0f;
-    float ViewZ = 7.0f;
+    float ViewY = 1.0f;
+    float ViewZ = 8.0f;
 }CameraPoint;
 struct CrainRotate {
     float bodyRotateX = 0.0f;
@@ -102,17 +86,18 @@ struct CrainTrans {
     float AllTransZ = 0.0f;
 }CrainTransSize;
 
+vector<glm::vec4>ModelsValue[33];
 
-vector<glm::vec4>ModelsValue[2];
-
-GLuint VAO[2], VBO[2];
+GLuint VAO[33], VBO[33];
 GLuint shaderID[2];
 GLuint qobjshader;
 GLuint vertexshader;
 GLuint fragmentshader;
 GLuint triangleshaderProgram;
 
-
+float ModelTransX[30];
+float ModelTransZ[30];
+int colide[30];
 
 int main(int argc, char** argv) {
     glutInit(&argc, argv);
@@ -130,17 +115,18 @@ int main(int argc, char** argv) {
         cout << "GLEW initialized" << endl;
     }
     //obj 파일읽기
-    cout << "Write the size of the square you want to make." << endl;
-    cin >> ModelCountCol;
-    cin >> ModelCountRow;
-    if (ModelCountCol < 5 || ModelCountCol>25 || ModelCountRow < 5 || ModelCountRow>25) {
-        cin >> ModelCountCol;
-        cin >> ModelCountRow;
-    }
-
+    
     ReadObj("plane.obj", ModelsValue[0]);
     ReadObj("crainCube.obj", ModelsValue[1]);
+    ReadObj("crainArm.obj", ModelsValue[2]);
+    
+    
 
+    if (randomExist) {
+		for (int ModelCountNumber = 0; ModelCountNumber < ModelNumber; ModelCountNumber++) {
+			ReadObj("crainCube.obj", ModelsValue[ModelCountNumber + 3]);
+		}
+    }
     make_vertexShaders();
     make_fragmentShaders();
     initbuffer();
@@ -248,51 +234,91 @@ GLuint make_shaderProgram() {
 
     return 1;
 }
+
+void randomExistSquare(int i) {
+    random_device rd;
+    default_random_engine dre(rd());
+    uniform_real_distribution<> urd(-2.5, 2.5);
+    
+    float randomX = urd(dre);
+    float randomZ = urd(dre);
+
+    ModelTransX[i] = randomX;
+    ModelTransZ[i] = randomZ;
+}
+
 void drawmodels() {
     //바닥면
     glBindVertexArray(VAO[0]);
     glm::mat4 PlaneModel = glm::mat4(1.0f);
-    PlaneModel = glm::scale(PlaneModel, glm::vec3(1.0f, 0, 1.0f));
+    PlaneModel = glm::scale(PlaneModel, glm::vec3(6.0f, 0, 6.0f));
     unsigned int PlaneModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
     glUniformMatrix4fv(PlaneModelLocation, 1, GL_FALSE, glm::value_ptr(PlaneModel));
     unsigned int PlaneModelFragLocation = glGetUniformLocation(shaderID[1], "vColor");
     glUniform3f(PlaneModelFragLocation, 0.5f, 0.75f, 0.27f);
     glDrawArrays(GL_QUADS, 0, ModelsValue[0].size());
 
-    //탱크 다리부분
-    //스케일 y 다시
-    if (OnceMakeColor) {
-        for (int i = 0; i < ModelCountCol; i++) {
-            for (int j = 0; j < ModelCountRow; j++) {
-                makeModelColor(i, j);
-            }
+    //지우개 몸통
+    glBindVertexArray(VAO[1]);
+    glm::mat4 BodyModel = glm::mat4(1.0f);
+    BodyModel = glm::translate(BodyModel, glm::vec3(CrainTransSize.AllTransX, CrainTransSize.AllTransY, CrainTransSize.AllTransZ));
+    BodyModel = glm::scale(BodyModel, glm::vec3(0.5f,0.5f,0.5f));
+    
+    unsigned int BodyModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
+    glUniformMatrix4fv(BodyModelLocation, 1, GL_FALSE, glm::value_ptr(BodyModel));
+    unsigned int BodyModelFragLocation = glGetUniformLocation(shaderID[1], "vColor");
+    glUniform3f(BodyModelFragLocation, 1.0f, 0.2f, 0.6f);
+    glDrawArrays(GL_QUADS, 0, 24);
+
+    float BodybottomMinx = BodyModel[0].x * ModelsValue[1][0].x + BodyModel[3].x;
+    float BodybottomMaxx = BodyModel[0].x * ModelsValue[1][2].x + BodyModel[3].x;
+    float BodybottomMinz = BodyModel[2].z * ModelsValue[1][0].z + BodyModel[3].z;
+    float BodybottomMaxz = BodyModel[2].z * ModelsValue[1][2].z + BodyModel[3].z;
+    
+    
+    //탱크 왼쪽 팔 부분
+    glBindVertexArray(VAO[2]);
+    glm::mat4 LeftArmModel = glm::mat4(1.0f);
+    LeftArmModel = glm::translate(LeftArmModel, glm::vec3(CrainTransSize.AllTransX, CrainTransSize.AllTransY, CrainTransSize.AllTransZ));
+    LeftArmModel = glm::translate(LeftArmModel, glm::vec3(0.0f, -0.25f, 0.0f));
+    LeftArmModel = glm::scale(LeftArmModel, glm::vec3(0.5f, 0.5f, 0.5f));
+    unsigned int LeftArmModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
+    glUniformMatrix4fv(LeftArmModelLocation, 1, GL_FALSE, glm::value_ptr(LeftArmModel));
+    unsigned int LeftArmModelFragLocation = glGetUniformLocation(shaderID[1], "vColor");
+    glUniform3f(LeftArmModelFragLocation, 0.75f, 0.75f, 0.75f);
+    glDrawArrays(GL_QUADS, 0, 24);
+    
+    //지워질 아이들
+    if (randomExist) {
+        for (int randomtrans = 0; randomtrans < ModelNumber; randomtrans++) {
+            randomExistSquare(randomtrans);
         }
     }
-    OnceMakeColor = false;
-    for (int i = 0; i < ModelCountCol; i++) {
-        for (int j = 0; j < ModelCountRow; j++) {            
-            glBindVertexArray(VAO[1]);
-            glm::mat4 RailModel = glm::mat4(1.0f);
-            RailModel = glm::translate(RailModel, glm::vec3(i * 0.25f-0.5f, CrainTransSize.AllTransY + 0.02f, j * 0.25f-0.5f));
-            RailModel = glm::scale(RailModel, glm::vec3(0.25f, 2.0f, 0.25f));
-            unsigned int RailModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
-            glUniformMatrix4fv(RailModelLocation, 1, GL_FALSE, glm::value_ptr(RailModel));
-            unsigned int RailModelFragLocation = glGetUniformLocation(shaderID[1], "vColor");
-            glUniform3f(RailModelFragLocation, ModelColorR[i][j], ModelColorG[i][j], ModelColorB[i][j]);
+    randomExist = false;
+    //충돌처리 곧 다감
+
+    for (int ModelCountNumber = 0; ModelCountNumber < ModelNumber; ModelCountNumber++) {        
+        
+        glBindVertexArray(VAO[ModelCountNumber + 3]);
+        glm::mat4 ExistSqure = glm::mat4(1.0f);
+        ExistSqure = glm::translate(ExistSqure, glm::vec3(ModelTransX[ModelCountNumber], 0.0f, ModelTransZ[ModelCountNumber]));
+        ExistSqure = glm::scale(ExistSqure, glm::vec3(0.25f, 0.25f, 0.25f));
+        float SquareCenterX = ExistSqure[0].x + ExistSqure[3].x;
+        float SquareCenterZ = ExistSqure[2].z + ExistSqure[3].z;
+        //충돌 이따가 다시 
+        if ((BodybottomMinx <= SquareCenterX <= BodybottomMaxx) && (BodybottomMinz <= SquareCenterZ <= BodybottomMaxz)) {
+            swap(ModelsValue[ModelCountNumber + 3], ModelsValue[ModelNumber + 3]);
+            ModelNumber--;
+        }
+        
+            unsigned int ExistSqureLocation = glGetUniformLocation(shaderID[1], "modeltransform");
+            glUniformMatrix4fv(ExistSqureLocation, 1, GL_FALSE, glm::value_ptr(ExistSqure));
+            unsigned int ExistSqureFragLocation = glGetUniformLocation(shaderID[1], "vColor");
+            glUniform3f(ExistSqureFragLocation, 0.1f, 0.5f, 0.2f);
+
             glDrawArrays(GL_QUADS, 0, 24);
-        }
+        
     }
-}
-void makeModelColor(int i, int j) {
-    random_device rd;
-    default_random_engine dre(rd());
-    uniform_real_distribution<>uid(0.0, 1.0);
-    float mR = uid(dre);
-    float mG = uid(dre);
-    float mB = uid(dre);
-    ModelColorR[i][j] = mR;
-    ModelColorG[i][j] = mG;
-    ModelColorB[i][j] = mB;
 }
 
 
@@ -306,9 +332,6 @@ GLvoid drawscene() {
     glEnable(GL_CULL_FACE);
 
     glUseProgram(shaderID[1]);
-
-    //메인뷰
-    glViewport(0, windowHeight / 4, windowWidth / 2, windowHeight / 2);
 
     unsigned int ModelViewLocation = glGetUniformLocation(shaderID[1], "viewtransform");
     unsigned int ModelProjLocation = glGetUniformLocation(shaderID[1], "projectiontransform");
@@ -357,29 +380,6 @@ GLvoid drawscene() {
 
     drawmodels();
 
-    //탑뷰
-    glViewport(windowWidth / 2, windowHeight / 2, windowWidth / 2, windowHeight / 2);
-
-    unsigned int TopViewLocation = glGetUniformLocation(shaderID[1], "viewtransform");
-
-    glm::vec3 TopCameraPos = glm::vec3(0.0f, 4.0f, 0.0f); // EYE
-
-    glm::vec3 TopCameraTarget = glm::vec3(0.0f, 0.0f, 0.0f); //--- 카메라 바라보는 방향
-    glm::vec3 TopCameraDirection = TopCameraTarget - TopCameraPos;
-
-    glm::vec3 TopViewUp = glm::vec3(0.0f, 0.0f, -1.0f);
-
-    glm::mat4 TopView = glm::mat4(1.0f);
-    TopView = glm::lookAt(TopCameraPos, TopCameraDirection, TopViewUp);
-    glUniformMatrix4fv(TopViewLocation, 1, GL_FALSE, glm::value_ptr(TopView));
-
-    glm::mat4 TopOrtho = glm::mat4(1.0f);
-    TopOrtho = glm::ortho(-2.0f, 2.0f, -2.0f, 2.0f, 0.7f, 20.0f);
-    unsigned int TopOrthoLocation = glGetUniformLocation(shaderID[1], "projectiontransform");
-    glUniformMatrix4fv(TopOrthoLocation, 1, GL_FALSE, glm::value_ptr(TopOrtho)); //직각투영
-
-    drawmodels();
-
     glutSwapBuffers();
 }
 
@@ -395,9 +395,9 @@ void resize(int width, int height) {
 
 void initbuffer() {
 
-    glGenVertexArrays(2, VAO);
+    glGenVertexArrays(ModelNumber+3, VAO);
 
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 3; i++) {
         glBindVertexArray(VAO[i]);
         glGenBuffers(1, &VBO[i]);
         glBindBuffer(GL_ARRAY_BUFFER, VBO[i]);
@@ -405,7 +405,16 @@ void initbuffer() {
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0);
         glEnableVertexAttribArray(0);
     }
-
+    if (ModelNumber != 0) {
+        for (int j = 0; j < ModelNumber; j++) {
+            glBindVertexArray(VAO[j+3]);
+            glGenBuffers(1, &VBO[j+3]);
+            glBindBuffer(GL_ARRAY_BUFFER, VBO[j+3]);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * ModelsValue[j+3].size(), &ModelsValue[j+3][0], GL_STREAM_DRAW);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0);
+            glEnableVertexAttribArray(0);
+        }
+    }
 }
 
 GLvoid keyboard(unsigned char key, int x, int y) {
@@ -450,12 +459,23 @@ GLvoid keyboard(unsigned char key, int x, int y) {
     case 'Z':
         CameraPoint.ViewZ -= 0.15f;
         break;
-    case 'b':
-        CrainTransSize.AllTransZ += 0.2f;
+
+//오브젝트 옮기기
+    case 'w':
+        CrainTransSize.AllTransZ -= 0.1f;
         break;
-    case 'B':
-        CrainTransSize.AllTransZ -= 0.2f;
+    case 's':
+        CrainTransSize.AllTransZ += 0.1f;
         break;
+    case 'a':
+        CrainTransSize.AllTransX -= 0.1f;
+        break;
+    case 'd':
+        CrainTransSize.AllTransX += 0.1f;
+        break;
+
+
+
     case 'm':
         CrainBodyRotateA = !CrainBodyRotateA;
         CrainBodyRotateB = false;
@@ -467,7 +487,7 @@ GLvoid keyboard(unsigned char key, int x, int y) {
     case 't':
         CrainArmRotateAB = !CrainArmRotateAB;
         break;
-    case 's':
+    case 'h':
         boolsaver.crainBodyRA = CrainBodyRotateA;
         boolsaver.crainBodyRB = CrainBodyRotateB;
         boolsaver.crainArmRAB = CrainArmRotateAB;
@@ -549,6 +569,7 @@ void timer(int value) {
     if (CameraRotationB) {
         ObjectTheta--;
     }
+    
 
 
     glutPostRedisplay();
