@@ -66,14 +66,34 @@ struct SpeherTrans {
     float Ty = 0.0f;
     float Tz = 0.0f;
 };
+struct SpeherVectors {
+    float Vx = 0.0f;
+    float Vy = 0.0f;
+    float Vz = 0.0f;
+};
 struct SpeherCol {
     float SR = 0.0f;
     float SG = 0.0f;
     float SB = 0.0f;
 };
+struct SquareTr {
+    float DownX = 0.0f;
+    float UpX = 0.0f;
+    float DownY = 0.0f;
+    float UpY = 0.0f;
+    float DownZ = 0.0f;
+    float UpZ = 0.0f;
+};
+struct BoxTr {
+    float x = 0.0f;
+    float y = 0.0f;
+    float z = 0.0f;
+};
+
 
 vector<glm::vec4>ModelsValue[8];
-
+SquareTr SquareTSize[4];
+BoxTr BoxTSize;
 GLuint VAO[8], VBO[8];
 GLuint shaderID[2];
 GLuint qobjshader;
@@ -82,6 +102,7 @@ GLuint fragmentshader;
 GLuint triangleshaderProgram;
 SpeherCol SpeherColor[5];
 SpeherTrans SpeherTransSize[5];
+SpeherVectors SpeherVectorSize[5];
 GLUquadricObj* CenterQobj[5];
 
 int main(int argc, char** argv) {
@@ -223,6 +244,8 @@ void PrimalCoordinate() {
         uniform_real_distribution<>spehery(0.0, 2.5);
         uniform_real_distribution<>speherxz(-1.5, 2.0);
         uniform_real_distribution<>SColor(0.0, 1.0);
+        uniform_real_distribution<>vectorS(0.1, 0.3);
+        uniform_int_distribution<>uid(0, 3);
 
         float PrimeY = spehery(dre);
         float PrimeX = speherxz(dre);
@@ -230,6 +253,11 @@ void PrimalCoordinate() {
         float SpeherR = SColor(dre);
         float SpeherG = SColor(dre);
         float SpeherB = SColor(dre);
+        float VectorY = vectorS(dre);
+        float VectorX = vectorS(dre);
+        float CollideRanCount = uid(dre);
+        
+        CollideCount[i] = CollideRanCount;
 
         SpeherTransSize[i].Ty = PrimeY;
         SpeherTransSize[i].Tx = PrimeX;
@@ -238,6 +266,9 @@ void PrimalCoordinate() {
         SpeherColor[i].SR = SpeherR;
         SpeherColor[i].SG = SpeherG;
         SpeherColor[i].SB = SpeherB;
+
+        SpeherVectorSize[i].Vx = VectorX;
+        SpeherVectorSize[i].Vy = VectorY;
     }
 }
 
@@ -287,6 +318,7 @@ void drawmodels() {
     glUniform3f(LeftWallFragLocation, 0.29f, 0.0f, 0.5f);
     glDrawArrays(GL_QUADS, 0, ModelsValue[2].size());
 
+
     //천장
     glBindVertexArray(VAO[3]);
     glm::mat4 RoofModel = glm::mat4(1.0f);
@@ -312,23 +344,26 @@ void drawmodels() {
     glUniform3f(BackWallFragLocation, 0.93f, 0.5f, 0.93f);
     glDrawArrays(GL_QUADS, 0, ModelsValue[4].size()); 
 
-    //제일 아래 사각형
+    
     glBindVertexArray(VAO[5]);
     glm::mat4 Boundary = glm::mat4(1.0f);
     Boundary = glm::rotate(Boundary, glm::radians(AllObjectTheta), glm::vec3(0.0f, 0.0f, 1.0f));
-    Boundary = glm::translate(Boundary, glm::vec3(0.0f, -2.9f, -1.95f));
-    //Boundary = glm::rotate(Boundary, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    Boundary = glm::translate(Boundary, glm::vec3(BoxTSize.x, BoxTSize.y, BoxTSize.z));
+    Boundary = glm::translate(Boundary, glm::vec3(0.0f , -2.9f, -1.95f));
     Boundary = glm::scale(Boundary, glm::vec3(2.0f, 3.0f, 2.0f));
     unsigned int BoundaryLocation = glGetUniformLocation(shaderID[1], "modeltransform");
     glUniformMatrix4fv(BoundaryLocation, 1, GL_FALSE, glm::value_ptr(Boundary));
     unsigned int BoundaryFragLocation = glGetUniformLocation(shaderID[1], "vColor");
     glUniform3f(BoundaryFragLocation, 1.0f, 0.0f, 0.0f);
     glDrawArrays(GL_QUADS, 0, ModelsValue[5].size());
+    float check = 0.0f;
+    
 
     //중간 사각형
     glBindVertexArray(VAO[6]);
     glm::mat4 Semi = glm::mat4(1.0f);
     Semi = glm::rotate(Semi, glm::radians(AllObjectTheta), glm::vec3(0.0f, 0.0f, 1.0f));
+    Semi = glm::translate(Semi, glm::vec3(BoxTSize.x, BoxTSize.y, BoxTSize.z));
     Semi = glm::translate(Semi, glm::vec3(0.0f, -2.9f, -0.95f));
     //Semi = glm::rotate(Semi, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     Semi = glm::scale(Semi, glm::vec3(1.5f, 2.5f, 1.5f));
@@ -342,6 +377,7 @@ void drawmodels() {
     glBindVertexArray(VAO[7]);
     glm::mat4 Upper = glm::mat4(1.0f);
     Upper = glm::rotate(Upper, glm::radians(AllObjectTheta), glm::vec3(0.0f, 0.0f, 1.0f));
+    Upper = glm::translate(Upper, glm::vec3(BoxTSize.x, BoxTSize.y, BoxTSize.z));
     Upper = glm::translate(Upper, glm::vec3(0.0f, -2.9f, 0.05f));
     //Upper = glm::rotate(Upper, glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     Upper = glm::scale(Upper, glm::vec3(1.0f, 2.0f, 1.0f));
@@ -568,19 +604,84 @@ void timer(int value) {
     if (TotalSphere != 0) {
         for (int i = 0; i < TotalSphere; i++) {
             if (CollideCount[i] == 0) {
-                SpeherTransSize[i].Ty -= 0.2f;
-                if (SpeherTransSize[i].Ty <= -3.0f) {
-                    CollideCount[i]++;
+                SpeherTransSize[i].Tx -= SpeherVectorSize[i].Vx;
+                SpeherTransSize[i].Ty -= SpeherVectorSize[i].Vy;
+                if (SpeherTransSize[i].Tx <= -3.0f) {
+                    CollideCount[i] = 3;
+                }
+                else if (SpeherTransSize[i].Ty <= -3.0f) {
+                    CollideCount[i] = 1;
                 }
             }
             if (CollideCount[i] == 1) {
-                SpeherTransSize[i].Ty += 0.2f;
-                if (SpeherTransSize[i].Ty >= 3.0f) {
-                    CollideCount[i]--;
+                SpeherTransSize[i].Tx -= SpeherVectorSize[i].Vx;
+                SpeherTransSize[i].Ty += SpeherVectorSize[i].Vy;
+                if (SpeherTransSize[i].Tx <= -3.0f) {
+                    CollideCount[i] = 2;
+                }
+                else if (SpeherTransSize[i].Ty >= 3.0f) {
+                    CollideCount[i] = 0;
+                }
+            }
+            if (CollideCount[i] == 2) {
+                SpeherTransSize[i].Tx += SpeherVectorSize[i].Vx;
+                SpeherTransSize[i].Ty += SpeherVectorSize[i].Vy;
+                if (SpeherTransSize[i].Tx >= 3.0f) {
+                    CollideCount[i] = 1;
+                }
+                else if (SpeherTransSize[i].Ty >= 3.0f) {
+                    CollideCount[i] = 3;
+                }
+            }
+            if (CollideCount[i] == 3) {
+                SpeherTransSize[i].Tx += SpeherVectorSize[i].Vx;
+                SpeherTransSize[i].Ty -= SpeherVectorSize[i].Vy;
+                if (SpeherTransSize[i].Tx >= 3.0f) {
+                    CollideCount[i] = 0;
+                }
+                else if (SpeherTransSize[i].Ty <= -3.0f) {
+                    CollideCount[i] = 2;
                 }
             }
         }
     }
+    if ((0 < (int)AllObjectTheta % 360) && ((int)AllObjectTheta % 360 < 90)) {
+        if (BoxTSize.x > -2.0f) {
+            BoxTSize.x -= 0.02f;
+        }
+        if (BoxTSize.y > 0.0f) {
+            BoxTSize.y -= 0.02f;
+        }
+        
+    }
+    if ((90 < (int)AllObjectTheta % 360) && ((int)AllObjectTheta % 360 < 180)) {
+        if (BoxTSize.x > -2.0f) {
+            BoxTSize.x -= 0.02f;
+        }
+        if (BoxTSize.y < 5.25f) {
+            BoxTSize.y += 0.02f;
+        }
+        
+    }
+    if ((180 < (int)AllObjectTheta % 360) && ((int)AllObjectTheta % 360 < 270)) {
+        if (BoxTSize.x < 2.0f) {
+            BoxTSize.x += 0.02f;
+        }
+        if (BoxTSize.y < 5.25f) {
+            BoxTSize.y += 0.02f;
+        }
+        
+    }
+    if ((270 < (int)AllObjectTheta % 360) && ((int)AllObjectTheta % 360 < 360)) {
+        if (BoxTSize.x < 2.0f) {
+            BoxTSize.x += 0.02f;
+        }
+        if (BoxTSize.y > 0.0f) {
+            BoxTSize.y -= 0.02f;
+        }
+        
+    }
+
     glutPostRedisplay();
     glutTimerFunc(1, timer, 1);
 }
