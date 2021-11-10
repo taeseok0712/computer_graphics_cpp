@@ -567,14 +567,12 @@ GLvoid keyboard(unsigned char key, int x, int y) {
         CameraRotationB = !CameraRotationB;
         CameraRotationA = false;
         break;
-
     case 'z':
         CameraPoint.ViewZ += 0.15f;
         break;
     case 'Z':
         CameraPoint.ViewZ -= 0.15f;
         break;
-
         //오브젝트 옮기기
     case 'b':
         if (TotalSphere >= 5) {
@@ -651,8 +649,7 @@ void timer(int value) {
         }
         if (BoxTSize.y > 0.0f) {
             BoxTSize.y -= 0.02f;
-        }
-        
+        }        
     }
     if ((90 < (int)AllObjectTheta % 360) && ((int)AllObjectTheta % 360 < 180)) {
         if (BoxTSize.x > -2.0f) {
@@ -660,8 +657,7 @@ void timer(int value) {
         }
         if (BoxTSize.y < 5.25f) {
             BoxTSize.y += 0.02f;
-        }
-        
+        }        
     }
     if ((180 < (int)AllObjectTheta % 360) && ((int)AllObjectTheta % 360 < 270)) {
         if (BoxTSize.x < 2.0f) {
@@ -669,8 +665,7 @@ void timer(int value) {
         }
         if (BoxTSize.y < 5.25f) {
             BoxTSize.y += 0.02f;
-        }
-        
+        }        
     }
     if ((270 < (int)AllObjectTheta % 360) && ((int)AllObjectTheta % 360 < 360)) {
         if (BoxTSize.x < 2.0f) {
@@ -678,10 +673,8 @@ void timer(int value) {
         }
         if (BoxTSize.y > 0.0f) {
             BoxTSize.y -= 0.02f;
-        }
-        
+        }        
     }
-
     glutPostRedisplay();
-    glutTimerFunc(1, timer, 1);
+    glutTimerFunc(20, timer, 1);
 }
