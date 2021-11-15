@@ -1,15 +1,19 @@
 #version 330 core
-layout (location = 0) in vec3 vPos; 
-out vec3 outColor;
-uniform mat4 modeltransform;
-uniform mat4 viewtransform;
-uniform mat4 projectiontransform;
-uniform vec3 vColor;
+
+layout(location = 0) in vec3 vPos;
+layout(location = 1) in vec3 vNormal;
+ 
+out vec3 FragPos;
+out vec3 Normal;
+
+uniform mat4 ModelTransform;
+uniform mat4 ViewTransform;
+uniform mat4 ProjectionTransform;
+//uniform mat4 NormalTransform;
 
 void main()
 {
-
-	gl_Position = projectiontransform * viewtransform * modeltransform * vec4 (vPos, 1.0);
-	outColor = vColor;
-
+	FragPos = vec3(ModelTransform * vec4(vPos, 1.0));
+	gl_Position = ProjectionTransform * ViewTransform * ModelTransform * vec4(vPos, 1.0);
+	Normal = vec3(vNormal);
 }
