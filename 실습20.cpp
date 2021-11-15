@@ -569,5 +569,5 @@ void timer(int value) {
 
 
     glutPostRedisplay();
-    glutTimerFunc(1, timer, 1);
+    glutTimerFunc(80, timer, 1);
 }

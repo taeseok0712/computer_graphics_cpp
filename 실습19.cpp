@@ -29,9 +29,9 @@ void resize(int width, int height);
 GLvoid drawscene(GLvoid);
 GLvoid reshape(int w, int h);
 GLvoid keyboard(unsigned char key, int x, int y);
-float CameraTheta = 0;
-float ObjectTheta = 0;
 
+bool CrainAllTransAlpha = false;
+bool CrainAllTransBeta = false;
 bool CrainBodyRotateA = false;
 bool CrainBodyRotateB = false;
 bool CrainArmRotateAB = false;
@@ -40,23 +40,15 @@ bool CameraRevolutionB = false;
 bool CameraRotationA = false;
 bool CameraRotationB = false;
 
+
+float ObjectTheta = 0.0f;
+float CameraTheta = 0.0f;
 int windowWidth, windowHeight;
-int ArmRotateVector = 1;
-struct boolsave {
-    bool crainBodyRA = false;
-    bool crainBodyRB = false;
-    bool crainArmRAB = false;
-    
-    bool cameraReA = false;
-    bool cameraReB = false;
-    bool cameraRoA = false;
-    bool cameraRoB = false;
-}boolsaver;
 
 struct CameraViewPoint {
     float ViewX = 0.0f;
     float ViewY = 1.0f;
-    float ViewZ = 2.0f;
+    float ViewZ = 3.0f;
 }CameraPoint;
 struct CrainRotate {
     float bodyRotateX = 0.0f;
@@ -70,8 +62,6 @@ struct CrainRotate {
     float armRRotateX = 0.0f;
     float armRRotateY = 0.0f;
     float armRRotateZ = 0.0f;
-
-    float cameraAngle = 0.0f;
 }CrainRotateSize;
 
 struct CrainTrans {
@@ -97,7 +87,7 @@ int main(int argc, char** argv) {
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
     glutInitWindowPosition(0, 0);
     glutInitWindowSize(800, 600);
-    glutCreateWindow("example3");
+    glutCreateWindow("example1");
 
     glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK) {
@@ -229,7 +219,7 @@ GLvoid drawscene() {
     initbuffer();
 
     glEnable(GL_DEPTH_TEST);
-    //glEnable(GL_CULL_FACE);
+    glEnable(GL_CULL_FACE);
 
     glUseProgram(shaderID[1]);
 
@@ -242,15 +232,15 @@ GLvoid drawscene() {
     glm::vec4 CameraPosDis = glm::vec4(ModelCameraPos, 1);
     CameraPosDis = CameraPosDistance * CameraPosDis;
     glm::vec3 CameraPostionDirection = glm::vec3(CameraPosDis.x, CameraPosDis.y, CameraPosDis.z);  //EYE 변환
-    
+
     glm::vec3 ModelCameraTarget = glm::vec3(0.0f, 0.0f, 0.0f); //--- 카메라 바라보는 방향
     glm::vec3 ModelCameraDirection = CameraPostionDirection - ModelCameraTarget;
-    
+
     glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-    
+
     glm::mat4 CameraDirectionDistance = glm::mat4(1.0f);
     CameraDirectionDistance = glm::rotate(CameraDirectionDistance, glm::radians(CameraTheta), glm::vec3(0.0f, 1.0f, 0.0f));
-    glm::vec4 CameraDirectionDis = CameraDirectionDistance * glm::vec4(ModelCameraDirection, 1);    
+    glm::vec4 CameraDirectionDis = CameraDirectionDistance * glm::vec4(ModelCameraDirection, 1);
     glm::vec3 CameraDirection;
     CameraDirection.x = CameraDirectionDis.x;
     CameraDirection.y = CameraDirectionDis.y;
@@ -266,27 +256,21 @@ GLvoid drawscene() {
         CenterDirection.y + CameraPostionDirection.y, CenterDirection.z + CameraPostionDirection.z); //n
 
     glm::vec3 ModelCameraRight = glm::normalize(glm::cross(up, CameraDirection)); //v
-    
+
     glm::vec3 cameraUp = glm::cross(CameraDirection, ModelCameraRight); //u
 
     glm::mat4 ModelView = glm::mat4(1.0f);
     ModelView = glm::lookAt(CameraPostionDirection, CenterDirectionDis, cameraUp);
     glUniformMatrix4fv(ModelViewLocation, 1, GL_FALSE, glm::value_ptr(ModelView));
-
     
-
-
-    //원근
     glm::mat4 ModelProj = glm::mat4(1.0f);
     ModelProj = glm::perspective(glm::radians(60.0f), (float)windowWidth / windowHeight, 0.1f, 100.0f);
     glUniformMatrix4fv(ModelProjLocation, 1, GL_FALSE, &ModelProj[0][0]);
 
-    cout << ModelCameraRight.x << ',' << ModelCameraRight.y << ',' << ModelCameraRight.z << endl;
-
     //바닥면
     glBindVertexArray(VAO[0]);
     glm::mat4 PlaneModel = glm::mat4(1.0f);
-    PlaneModel = glm::scale(PlaneModel, glm::vec3(2.5f, 0, 2.5f));
+    PlaneModel = glm::scale(PlaneModel, glm::vec3(2.5f, 2.5f, 2.5f));
     unsigned int PlaneModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
     glUniformMatrix4fv(PlaneModelLocation, 1, GL_FALSE, glm::value_ptr(PlaneModel));
     unsigned int PlaneModelFragLocation = glGetUniformLocation(shaderID[1], "vColor");
@@ -323,9 +307,6 @@ GLvoid drawscene() {
     LeftArmModel = glm::translate(LeftArmModel, glm::vec3(CrainTransSize.AllTransX, CrainTransSize.AllTransY, CrainTransSize.AllTransZ));
     LeftArmModel = glm::rotate(LeftArmModel, glm::radians(CrainRotateSize.bodyRotateY), glm::vec3(0.0f, 1.0f, 0.0f));
     LeftArmModel = glm::translate(LeftArmModel, glm::vec3(-0.2f, 0.0f, 0.0f));
-    LeftArmModel = glm::translate(LeftArmModel, glm::vec3(0.0f, 0.4f, 0.0f));
-    LeftArmModel = glm::rotate(LeftArmModel, glm::radians(CrainRotateSize.armLRotateX), glm::vec3(1.0f, 0.0f, 0.0f));
-    LeftArmModel = glm::translate(LeftArmModel, glm::vec3(0.0f, -0.4f, 0.0f));
     //LeftArmModel = glm::scale(LeftArmModel, glm::vec3(0.5f, 0.5f, 0.5f));
     unsigned int LeftArmModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
     glUniformMatrix4fv(LeftArmModelLocation, 1, GL_FALSE, glm::value_ptr(LeftArmModel));
@@ -341,9 +322,6 @@ GLvoid drawscene() {
     RightArmModel = glm::translate(RightArmModel, glm::vec3(CrainTransSize.AllTransX, CrainTransSize.AllTransY, CrainTransSize.AllTransZ));
     RightArmModel = glm::rotate(RightArmModel, glm::radians(CrainRotateSize.bodyRotateY), glm::vec3(0.0f, 1.0f, 0.0f));
     RightArmModel = glm::translate(RightArmModel, glm::vec3(0.2f, 0.0f, 0.0f));
-    RightArmModel = glm::translate(RightArmModel, glm::vec3(0.0f, 0.4f, 0.0f));
-    RightArmModel = glm::rotate(RightArmModel, glm::radians(CrainRotateSize.armRRotateX), glm::vec3(1.0f, 0.0f, 0.0f));
-    RightArmModel = glm::translate(RightArmModel, glm::vec3(0.0f, -0.4f, 0.0f));
     //RightArmModel = glm::scale(RightArmModel, glm::vec3(0.5f, 0.5f, 0.5f));
     unsigned int RightArmModelLocation = glGetUniformLocation(shaderID[1], "modeltransform");
     glUniformMatrix4fv(RightArmModelLocation, 1, GL_FALSE, glm::value_ptr(RightArmModel));
@@ -384,22 +362,10 @@ GLvoid keyboard(unsigned char key, int x, int y) {
     switch (key)
     {
     case 'c': //초기화
-        CameraPoint.ViewZ = 3.5f;
-        CameraPoint.ViewX = 1.0f;
+        CameraPoint.ViewZ = 3.0f;
+        CameraPoint.ViewX = 0.0f;
         CameraPoint.ViewY = 1.0f;
-        memset(&CrainRotateSize, 0, sizeof(CrainRotateSize));
-        memset(&CrainTransSize, 0, sizeof(CrainTransSize));
-        ObjectTheta = 0;
-        CameraTheta = 0;
-
-        CrainBodyRotateA = false;
-        CrainBodyRotateB = false;
-        CrainArmRotateAB = false;
-        CameraRotationA = false;
-        CameraRotationB = false;
-        CameraRevolutionB = false;
-        CameraRevolutionA = false;
-
+       
         break;
         //카메라 방향
     case 'x':
@@ -439,33 +405,6 @@ GLvoid keyboard(unsigned char key, int x, int y) {
     case 't':
         CrainArmRotateAB = !CrainArmRotateAB;
         break;
-    case 's':
-        boolsaver.crainBodyRA = CrainBodyRotateA;
-        boolsaver.crainBodyRB = CrainBodyRotateB;
-        boolsaver.crainArmRAB = CrainArmRotateAB;
-        boolsaver.cameraReA = CameraRevolutionA;
-        boolsaver.cameraReB = CameraRevolutionB;
-        boolsaver.cameraRoA = CameraRotationA;
-        boolsaver.cameraRoB = CameraRotationB;
-
-        CrainBodyRotateA = false;
-        CrainBodyRotateB = false;
-        CrainArmRotateAB = false;
-        CameraRevolutionA = false;
-        CameraRevolutionB = false;
-        CameraRotationA = false;
-        CameraRotationB = false;
-        break;
-    case 'S':
-        CrainBodyRotateA = boolsaver.crainBodyRA;
-        CrainBodyRotateB = boolsaver.crainBodyRB;
-        CrainArmRotateAB = boolsaver.crainArmRAB;
-        CameraRevolutionA = boolsaver.cameraReA;
-        CameraRevolutionB = boolsaver.cameraReB;
-        CameraRotationA = boolsaver.cameraRoA;
-        CameraRotationB = boolsaver.cameraRoB;
-
-        break;
     case 'r':
         CameraRevolutionA = !CameraRevolutionA;
         CameraRevolutionB = false;
@@ -474,7 +413,6 @@ GLvoid keyboard(unsigned char key, int x, int y) {
         CameraRevolutionB = !CameraRevolutionB;
         CameraRevolutionA = false;
         break;
-        
     case 'q':
         exit(0);
         cout << "exit the program" << endl;
@@ -494,19 +432,10 @@ void timer(int value) {
     }
     if (CrainArmRotateAB) {
         if (CrainRotateSize.armLRotateX >= 90) {
-            ArmRotateVector = -1;
+
         }
         else if (CrainRotateSize.armLRotateX <= -90) {
-            ArmRotateVector = 1;
-        }
-        
-        if (ArmRotateVector == 1) {
-            CrainRotateSize.armLRotateX++;
-            CrainRotateSize.armRRotateX--;
-        }
-        else if (ArmRotateVector == -1) {
-            CrainRotateSize.armLRotateX--;
-            CrainRotateSize.armRRotateX++;
+
         }
     }
     if (CameraRevolutionA) {
@@ -521,8 +450,6 @@ void timer(int value) {
     if (CameraRotationB) {
         ObjectTheta--;
     }
-
-
     glutPostRedisplay();
-    glutTimerFunc(1, timer, 1);
+    glutTimerFunc(60, timer, 1);
 }
