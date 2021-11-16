@@ -9,11 +9,11 @@ out vec3 Normal;
 uniform mat4 ModelTransform;
 uniform mat4 ViewTransform;
 uniform mat4 ProjectionTransform;
-//uniform mat4 NormalTransform;
+uniform mat4 NormalTransform;
 
 void main()
 {
-	FragPos = vec3(ModelTransform * vec4(vPos, 1.0));
+	FragPos = vec3(ModelTransform * vec4(vPos, 1));
 	gl_Position = ProjectionTransform * ViewTransform * ModelTransform * vec4(vPos, 1.0);
-	Normal = vec3(vNormal);
+	Normal = vec3(NormalTransform * vec4(vNormal, 1));
 }

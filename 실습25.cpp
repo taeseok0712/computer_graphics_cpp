@@ -36,10 +36,12 @@ int ObitalRotate = 0;
 
 void drawmodels();
 void drawObital();
+void RandomColorLight();
 
 bool CameraRotationA = false;
 bool CameraRotationB = false;
-bool MakeOrbital = true;
+
+
 float SquareRotate = 0.0f;
 float LightRaidian = 0.0f;
 bool SquareRotateA = false;
@@ -47,11 +49,11 @@ bool SquareRotateB = false;
 bool LightRotateA = false;
 bool LightRotateB = false;
 bool ChangeModel = true;
-
+int LightCount = 0;
 struct CameraViewPoint {
     float ViewX = 0.0f;
     float ViewY = 3.0f;
-    float ViewZ = 6.0f;
+    float ViewZ = 8.0f;
 }CameraPoint;
 struct LightObital {
     float x = 0.0f;
@@ -59,7 +61,7 @@ struct LightObital {
     float z = 0.0f;
 
 }LightRotateOrbital;
-float ScaleZ = 3.0f;
+float ScaleZ = 5.0f;
 float ScaleY = 0.0f;
 GLuint VAO[4], VBO[8];
 GLuint shaderID;
@@ -68,8 +70,8 @@ GLuint vertexshader;
 GLuint fragmentshader;
 GLuint triangleshaderProgram;
 
-vector<glm::vec4>ModelsValue[3];
-vector<glm::vec4>normalValue[3];
+vector<vector<glm::vec4>>ModelsValue;
+vector<vector<glm::vec4>>normalValue;
 vector<float>ObitalValue;
 vector<float>LightOrbitalValue;
 
@@ -90,9 +92,27 @@ int main(int argc, char** argv) {
     else {
         cout << "GLEW initialized" << endl;
     }
-    ReadObj("cube.obj", ModelsValue[0], normalValue[0]);
-    ReadObj("cube.obj", ModelsValue[1], normalValue[1]);
-    ReadObj("pyramid.obj", ModelsValue[2], normalValue[2]);
+    vector<glm::vec4> modelTemp;
+    vector<glm::vec4> normalTemp;
+    ReadObj("Sphere2.obj", modelTemp, normalTemp);
+    ModelsValue.push_back(modelTemp);
+    normalValue.push_back(normalTemp);
+    modelTemp.resize(0);
+    normalTemp.resize(0);
+    ReadObj("Sphere2.obj", modelTemp, normalTemp);
+    ModelsValue.push_back(modelTemp);
+    normalValue.push_back(normalTemp);
+    modelTemp.resize(0);
+    normalTemp.resize(0);
+    ReadObj("Sphere2.obj", modelTemp, normalTemp);
+    ModelsValue.push_back(modelTemp);
+    normalValue.push_back(normalTemp);
+    modelTemp.resize(0);
+    normalTemp.resize(0);
+    ReadObj("cube.obj", modelTemp, normalTemp);
+    ModelsValue.push_back(modelTemp);
+    normalValue.push_back(normalTemp);
+
     make_vertexShaders();
     make_fragmentShaders();
     make_shaderProgram();
@@ -166,8 +186,8 @@ GLuint make_shaderProgram() {
     shaderID = glCreateProgram();
 
     glAttachShader(shaderID, qobjshader);
-    glAttachShader(shaderID, fragmentshader); 
- 
+    glAttachShader(shaderID, fragmentshader);
+
     glLinkProgram(shaderID);
 
     glDeleteShader(qobjshader);
@@ -182,64 +202,65 @@ GLuint make_shaderProgram() {
         cerr << "Error: shader program 연결 실패" << errorlog << endl;
     }
     glUseProgram(shaderID);
-    
+
     return shaderID;
 }
 
 
 void drawmodels() {
-    
-    //고정 물체 사각형
-    if (ChangeModel) {
-        glBindVertexArray(VAO[0]);
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::rotate(model, glm::radians(SquareRotate), glm::vec3(0.0f, 1.0f, 0.0f));
-        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
-        unsigned int modelLocation = glGetUniformLocation(shaderID, "ModelTransform");
-        glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(model));
-        glm::mat4 Normalmodel = glm::mat4(1.0f);
-        Normalmodel = glm::rotate(Normalmodel, glm::radians(SquareRotate), glm::vec3(0.0f, 1.0f, 0.0f));
-        unsigned int NormalmodelLocation = glGetUniformLocation(shaderID, "NormalTransform");
-        glUniformMatrix4fv(NormalmodelLocation, 1, GL_FALSE, glm::value_ptr(Normalmodel));
-        unsigned int objColorLocation = glGetUniformLocation(shaderID, "ObjectColor");
-        glUniform3f(objColorLocation, 0.6f, 0.5f, 0.3f);
-        glDrawArrays(GL_TRIANGLES, 0, ModelsValue[0].size());
-    }
-    else {
-        //고정 물체 피라미드
-        glBindVertexArray(VAO[3]);
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::rotate(model, glm::radians(SquareRotate), glm::vec3(0.0f, 1.0f, 0.0f));
-        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
-        unsigned int modelLocation = glGetUniformLocation(shaderID, "ModelTransform");
-        glUniformMatrix4fv(modelLocation, 1, GL_FALSE, glm::value_ptr(model));
-        glm::mat4 Normalmodel = glm::mat4(1.0f);
-        Normalmodel = glm::rotate(Normalmodel, glm::radians(SquareRotate), glm::vec3(0.0f, 1.0f, 0.0f));
-        unsigned int NormalmodelLocation = glGetUniformLocation(shaderID, "NormalTransform");
-        glUniformMatrix4fv(NormalmodelLocation, 1, GL_FALSE, glm::value_ptr(Normalmodel));
-        unsigned int objColorLocation = glGetUniformLocation(shaderID, "ObjectColor");
-        glUniform3f(objColorLocation, 0.6f, 0.5f, 0.3f);
-        glDrawArrays(GL_TRIANGLES, 0, ModelsValue[2].size());
-    }
-    
-    //궤도
-    glBindVertexArray(VAO[1]);
-    glm::mat4 OrbitalModel = glm::mat4(1.0f);
-    OrbitalModel = glm::scale(OrbitalModel, glm::vec3(ScaleZ, 0.0f, ScaleZ));
-    unsigned int OrbitalModelModelLocation = glGetUniformLocation(shaderID, "ModelTransform");
-    glUniformMatrix4fv(OrbitalModelModelLocation, 1, GL_FALSE, glm::value_ptr(OrbitalModel));
-    unsigned int OrbitalModelLocation = glGetUniformLocation(shaderID, "ObjectColor");
-    glUniform3f(OrbitalModelLocation, 0.2f, 0.5f, 0.8f);
-    glLineWidth(2.0f);
-    glDrawArrays(GL_LINE_STRIP, 0, ObitalValue.size() / 6);
-    
-    //조명 박스
-    glBindVertexArray(VAO[2]);
-    glm::mat4 LightBox = glm::mat4(1.0f);
+    //태양
+	glBindVertexArray(VAO[0]);
+	glm::mat4 Sunmodel = glm::mat4(1.0f);
+    Sunmodel = glm::rotate(Sunmodel, glm::radians(SquareRotate), glm::vec3(0.0f, 1.0f, 0.0f));
+    Sunmodel = glm::scale(Sunmodel, glm::vec3(1.0f, 1.0f, 1.0f));
+	unsigned int SunmodelLocation = glGetUniformLocation(shaderID, "ModelTransform");
+	glUniformMatrix4fv(SunmodelLocation, 1, GL_FALSE, glm::value_ptr(Sunmodel));
+	glm::mat4 SunNormalmodel = glm::mat4(1.0f);
+    SunNormalmodel = glm::rotate(SunNormalmodel, glm::radians(SquareRotate), glm::vec3(0.0f, 1.0f, 0.0f));
+	unsigned int SunNormalmodelLocation = glGetUniformLocation(shaderID, "NormalTransform");
+	glUniformMatrix4fv(SunNormalmodelLocation, 1, GL_FALSE, glm::value_ptr(SunNormalmodel));
+	unsigned int SunobjColorLocation = glGetUniformLocation(shaderID, "ObjectColor");
+	glUniform3f(SunobjColorLocation, 1.0f, 0.3f, 0.1f);
+	glDrawArrays(GL_TRIANGLES, 0, ModelsValue[0].size());
 
+	//지구
+	glBindVertexArray(VAO[1]);
+	glm::mat4 Earthmodel = glm::mat4(1.0f);
+    Earthmodel = glm::rotate(Earthmodel, glm::radians(SquareRotate), glm::vec3(0.0f, 1.0f, 0.0f));
+    Earthmodel = glm::translate(Earthmodel, glm::vec3(-1.75f, 0.0f, 0.0f));
+    Earthmodel = glm::scale(Earthmodel, glm::vec3(0.5f, 0.5f, 0.5f));
+	unsigned int EarthmodelLocation = glGetUniformLocation(shaderID, "ModelTransform");
+	glUniformMatrix4fv(EarthmodelLocation, 1, GL_FALSE, glm::value_ptr(Earthmodel));
+	glm::mat4 EarthNormalmodel = glm::mat4(1.0f);
+    EarthNormalmodel = glm::rotate(EarthNormalmodel, glm::radians(SquareRotate), glm::vec3(0.0f, 1.0f, 0.0f));
+	unsigned int EarthNormalmodelLocation = glGetUniformLocation(shaderID, "NormalTransform");
+	glUniformMatrix4fv(EarthNormalmodelLocation, 1, GL_FALSE, glm::value_ptr(EarthNormalmodel));
+	unsigned int EarthobjColorLocation = glGetUniformLocation(shaderID, "ObjectColor");
+	glUniform3f(EarthobjColorLocation, 0.1f, 1.0f, 0.3f);
+	glDrawArrays(GL_TRIANGLES, 0, ModelsValue[1].size());
+
+    //달
+    glBindVertexArray(VAO[2]);
+    glm::mat4 Moonmodel = glm::mat4(1.0f);
+    Moonmodel = glm::rotate(Moonmodel, glm::radians(SquareRotate), glm::vec3(0.0f, 1.0f, 0.0f));
+    Moonmodel = glm::translate(Moonmodel, glm::vec3(-2.5f, 0.0f, 0.0f));
+    Moonmodel = glm::scale(Moonmodel, glm::vec3(0.25f, 0.25f, 0.25f));
+    unsigned int MoonmodelLocation = glGetUniformLocation(shaderID, "ModelTransform");
+    glUniformMatrix4fv(MoonmodelLocation, 1, GL_FALSE, glm::value_ptr(Moonmodel));
+    glm::mat4 MoonNormalmodel = glm::mat4(1.0f);
+    MoonNormalmodel = glm::rotate(MoonNormalmodel, glm::radians(SquareRotate), glm::vec3(0.0f, 1.0f, 0.0f));
+    unsigned int MoonNormalmodelLocation = glGetUniformLocation(shaderID, "NormalTransform");
+    glUniformMatrix4fv(MoonNormalmodelLocation, 1, GL_FALSE, glm::value_ptr(MoonNormalmodel));
+    unsigned int MoonobjColorLocation = glGetUniformLocation(shaderID, "ObjectColor");
+    glUniform3f(MoonobjColorLocation, 0.3f, 0.1f, 1.0f);
+    glDrawArrays(GL_TRIANGLES, 0, ModelsValue[2].size());
+
+	//조명 박스
+    glBindVertexArray(VAO[3]);
+    glm::mat4 LightBox = glm::mat4(1.0f);
     LightBox = glm::rotate(LightBox, glm::radians(LightRaidian), glm::vec3(0.0f, 1.0f, 0.0f));
     LightBox = glm::translate(LightBox, glm::vec3(0.0f, 0.0f, ScaleZ));
-    LightBox = glm::scale(LightBox, glm::vec3(1.0f, 1.0f, 1.0f));
+    LightBox = glm::scale(LightBox, glm::vec3(0.3f, 0.3f, 0.3f));
     unsigned int LightBoxLocation = glGetUniformLocation(shaderID, "ModelTransform");
     glUniformMatrix4fv(LightBoxLocation, 1, GL_FALSE, glm::value_ptr(LightBox));
     glm::mat4 LightBoxNormalmodel = glm::mat4(1.0f);
@@ -248,37 +269,8 @@ void drawmodels() {
     glUniformMatrix4fv(LightBoxNormalmodelLocation, 1, GL_FALSE, glm::value_ptr(LightBoxNormalmodel));
     unsigned int LightBoxColorLocation = glGetUniformLocation(shaderID, "ObjectColor");
     glUniform3f(LightBoxColorLocation, 0.2f, 0.2f, 0.2f);
-    glDrawArrays(GL_TRIANGLES, 0, ModelsValue[1].size());
-    
-}
-void drawObital() {
-    float CircleX, CircleZ;
-    for (int i = 0; i < 360; i++) {
-        float r = 1.0;
-        CircleX = r * cos(3.14 * i / 180);
-        CircleZ = r * sin(3.14 * i / 180);
+    glDrawArrays(GL_TRIANGLES, 0, ModelsValue[3].size());
 
-        ObitalValue.push_back(CircleX);
-        ObitalValue.push_back(0.0f);
-        ObitalValue.push_back(CircleZ);
-
-        ObitalValue.push_back(0.0f);
-        ObitalValue.push_back(1.0f);
-        ObitalValue.push_back(0.0f);
-    }
-    for (int i = 0; i < 360; i++) {
-        float r = 1.0;
-        CircleX = r * cos(3.14 * i / 180);
-        CircleZ = r * sin(3.14 * i / 180);
-
-        LightOrbitalValue.push_back(CircleX);
-        LightOrbitalValue.push_back(0.0f);
-        LightOrbitalValue.push_back(CircleZ);
-
-        LightOrbitalValue.push_back(0.0f);
-        LightOrbitalValue.push_back(1.0f);
-        LightOrbitalValue.push_back(0.0f);
-    }
 }
 
 GLvoid drawscene() {
@@ -288,7 +280,7 @@ GLvoid drawscene() {
     glEnable(GL_CULL_FACE);
 
     glUseProgram(shaderID);
-    
+
     glm::vec3 ModelCameraPos = glm::vec3(CameraPoint.ViewX, CameraPoint.ViewY, CameraPoint.ViewZ); // EYE
     glm::mat4 CameraPosDistance = glm::mat4(1.0f);
     CameraPosDistance = glm::rotate(CameraPosDistance, glm::radians(ObjectTheta), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -326,13 +318,13 @@ GLvoid drawscene() {
     ModelView = glm::lookAt(CameraPostionDirection, CenterDirectionDis, cameraUp);
     unsigned int ModelViewLocation = glGetUniformLocation(shaderID, "ViewTransform");
     glUniformMatrix4fv(ModelViewLocation, 1, GL_FALSE, glm::value_ptr(ModelView));
-    
+
     //조명 카메라 위치
     glm::vec3 ViewP;
     ViewP = glm::vec3(CameraPostionDirection);
     unsigned int ViewPositionLocation = glGetUniformLocation(shaderID, "ViewPosTransform");
     glUniform3fv(ViewPositionLocation, 1, glm::value_ptr(ViewP));
-    
+
     //원근
     {
         glm::mat4 ModelProj = glm::mat4(1.0f);
@@ -344,13 +336,13 @@ GLvoid drawscene() {
     {
         glm::mat4 LightPosition = glm::mat4(1.0f);
         LightPosition = glm::rotate(LightPosition, glm::radians(LightRaidian), glm::vec3(0.0f, 1.0f, 0.0f));
-        LightPosition = glm::translate(LightPosition, glm::vec3(0.0f, ScaleY, ScaleZ - 1.5f));
+        LightPosition = glm::translate(LightPosition, glm::vec3(0.0f, ScaleY, ScaleZ - 0.5f));
         glm::vec4 LightPosDis = glm::vec4(1.0f);
         LightPosDis = LightPosition * LightPosDis;
-        glm::vec3 LightPos 
+        glm::vec3 LightPos
             = glm::vec3(LightPosDis.x, LightPosDis.y, LightPosDis.z);
         unsigned int lightPosLocation = glGetUniformLocation(shaderID, "LightPos");
-        glUniform3fv(lightPosLocation, 1, glm::value_ptr(glm::vec3(0,0,0)));
+        glUniform3fv(lightPosLocation, 1, glm::value_ptr(glm::vec3(0, 0, 0)));
         unsigned int lightColorLocation = glGetUniformLocation(shaderID, "LightColor");
         glUniform3fv(lightColorLocation, 1, glm::value_ptr(LightColor));
         unsigned int LightTransformLocation = glGetUniformLocation(shaderID, "LightTransform");
@@ -372,57 +364,38 @@ void resize(int width, int height) {
 }
 
 void initbuffer() {
-    if (MakeOrbital) {
-        drawObital();
-        MakeOrbital = false;
-    }
     glGenVertexArrays(4, VAO);
-    
-    glBindVertexArray(VAO[0]);
-    glGenBuffers(2, &VBO[0]);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4)*ModelsValue[0].size(), &ModelsValue[0][0], GL_STREAM_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0); //--- 위치 속성
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * normalValue[0].size(), &normalValue[0][0], GL_STREAM_DRAW);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0);
-    glEnableVertexAttribArray(1);
 
-    glBindVertexArray(VAO[1]);
-    glGenBuffers(2, &VBO[2]);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[2]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * ObitalValue.size(), &ObitalValue[0], GL_STREAM_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0); //--- 위치 속성
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[3]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * ObitalValue.size(), &ObitalValue[0], GL_STREAM_DRAW);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    glBindVertexArray(VAO[2]);
-    glGenBuffers(2, &VBO[4]);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[4]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * ModelsValue[1].size(), &ModelsValue[1][0], GL_STREAM_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0); //--- 위치 속성
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[5]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * normalValue[1].size(), &normalValue[1][0], GL_STREAM_DRAW);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0);
-    glEnableVertexAttribArray(1);
-
-    glBindVertexArray(VAO[3]);
-    glGenBuffers(2, &VBO[6]);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[6]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * ModelsValue[2].size(), &ModelsValue[2][0], GL_STREAM_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0); //--- 위치 속성
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO[7]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * normalValue[2].size(), &normalValue[2][0], GL_STREAM_DRAW);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0);
-    glEnableVertexAttribArray(1);
+    for (int i = 0; i < 4; i++) {
+        glBindVertexArray(VAO[i]);
+        glGenBuffers(2, &VBO[2 * i]);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO[2 * i]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * ModelsValue[i].size(), &ModelsValue[i][0], GL_STREAM_DRAW);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0); //--- 위치 속성
+        glEnableVertexAttribArray(0);
+        glBindBuffer(GL_ARRAY_BUFFER, VBO[2 * i + 1]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec4) * normalValue[i].size(), &normalValue[i][0], GL_STREAM_DRAW);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec4), (void*)0);
+        glEnableVertexAttribArray(1);
+    }
 }
-
+void RandomColorLight() {
+    if (LightCount % 3 == 1) {
+        LightColor.x = 1.0f;
+        LightColor.y = 0.0f;
+        LightColor.z = 0.0f;
+    }
+    else if (LightCount % 3 == 2) {
+        LightColor.x = 0.0f;
+        LightColor.y = 1.0f;
+        LightColor.z = 0.0f;
+    }
+    else if (LightCount % 3 == 0) {
+        LightColor.x = 0.0f;
+        LightColor.y = 0.0f;
+        LightColor.z = 1.0f;
+    }
+}
 GLvoid keyboard(unsigned char key, int x, int y) {
     switch (key)
     {
@@ -436,11 +409,9 @@ GLvoid keyboard(unsigned char key, int x, int y) {
         break;
     case 'z':
         ScaleZ += 0.2f;
-        MakeOrbital = true;
         break;
     case 'Z':
         ScaleZ -= 0.2f;
-        MakeOrbital = true;
         break;
     case 'm':
         ScaleY = 20.0f;
@@ -466,12 +437,19 @@ GLvoid keyboard(unsigned char key, int x, int y) {
         LightRotateA = !LightRotateA;
         LightRotateB = false;
         break;
-    case'R':
+    case 'R':
         LightRotateB = !LightRotateB;
         LightRotateA = false;
         break;
     case 'c':
-        ChangeModel = !ChangeModel;
+        RandomColorLight();
+        LightCount++;
+        break;
+    case 'C':
+        LightColor.x = 1.0f;
+        LightColor.y = 1.0f;
+        LightColor.z = 1.0f;
+        LightCount = 0;
         break;
     case 'q':
         exit(0);
@@ -491,21 +469,17 @@ void timer(int value) {
         ObjectTheta--;
     }
     if (LightRotateA) {
-        LightRotateOrbital.x = LightOrbitalValue[6 * ObitalRotate];
-        LightRotateOrbital.y = LightOrbitalValue[6 * ObitalRotate + 1];
-        LightRotateOrbital.z = LightOrbitalValue[6 * ObitalRotate + 2];
-        ObitalRotate++;
         LightRaidian -= 1.0f;
-        if (ObitalRotate == 360) {
-            ObitalRotate = 0;
-        }
     }
-   if (SquareRotateA) {
-       SquareRotate += 1.0f;
-   }
-   if (SquareRotateB) {
-       SquareRotate -= 1.0f;
-   }
+    if (LightRotateB) {
+        LightRaidian += 1.0f;
+    }
+    if (SquareRotateA) {
+        SquareRotate += 1.0f;
+    }
+    if (SquareRotateB) {
+        SquareRotate -= 1.0f;
+    }
     glutPostRedisplay();
     glutTimerFunc(1, timer, 1);
 }

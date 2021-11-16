@@ -1,13 +1,14 @@
 ﻿#version 330 core
 in vec3 FragPos;
 in vec3 Normal;
-out vec4 FragColor;
 
 uniform vec3 LightPos;
 uniform vec3 LightColor;
 uniform vec3 ObjectColor;
 uniform vec3 ViewPosTransform;
 uniform mat4 LightTransform;
+
+out vec4 FragColor;
 
 void main()
 {
